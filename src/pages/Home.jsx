@@ -17,4 +17,9 @@ const MatchCard = ({ teamA, teamB, time, status }) => (
         <div className="w-14 h-14 bg-gray-800 rounded-full flex items-center justify-center text-2xl border border-gray-700 group-hover:border-primary transition-colors">🛡️</div>
         <p className="font-bold text-white text-sm">{teamA}</p>
       </div>
+      <div className="text-2xl font-black text-gray-700 px-4">VS</div>
+      <div className="flex flex-col items-center gap-2">
+        <div className="w-14 h-14 bg-gray-800 rounded-full flex items-center justify-center text-2xl border border-gray-700 group-hover:border-primary transition-colors">🦁</div>
+        <p className="font-bold text-white text-sm">{teamB}</p>
+      </div>
       
