@@ -39,6 +39,8 @@ const Predict = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Col: Analysis */}
         <div className="lg:col-span-2 space-y-6"></div>
-        
+        <Card>
+             <h3 className="font-bold text-white mb-6">Head-to-Head Stats</h3>
+             {[
 
       
