@@ -43,4 +43,6 @@ const Home = () => {
           <div className="w-6 h-6 bg-primary rounded-full text-black flex items-center justify-center text-sm cursor-pointer hover:bg-white">+</div>
         </div>
       </div>
+
+      <StatsGrid />
       
