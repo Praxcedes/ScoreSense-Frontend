@@ -59,6 +59,9 @@ const Predict = () => {
                  </div>
              ))}
           </Card>
-          
+
+          <div className="bg-primary/5 p-6 rounded-2xl border border-primary/20 flex gap-4 items-start">
+            <div className="p-3 bg-primary/10 rounded-xl text-primary"><Zap size={24}/></div>
+            <div>
 
       
