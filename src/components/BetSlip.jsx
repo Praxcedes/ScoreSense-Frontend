@@ -32,4 +32,9 @@ const BetSlip = () => {
           <span className="text-muted">Wager Amount</span>
           <span className="font-mono font-bold text-primary">{wager} VP</span>
         </div>
+        <input 
+          type="range" min="10" max="1000" value={wager} 
+          onChange={(e) => setWager(e.target.value)}
+          className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary"
+        />
         
