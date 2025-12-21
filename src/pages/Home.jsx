@@ -57,4 +57,11 @@ const Home = () => {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <MatchCard teamA="Gor Mahia" teamB="AFC Leopards" status="LIVE" />
+          <MatchCard teamA="Arsenal" teamB="Liverpool" time="Today, 19:45" status="UPCOMING" />
+          <MatchCard teamA="Real Madrid" teamB="Barca" time="Sat, 22:00" status="UPCOMING" />
+        </div>
+        
+
       
