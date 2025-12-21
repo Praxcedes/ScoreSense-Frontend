@@ -28,3 +28,8 @@ const MatchCard = ({ teamA, teamB, time, status }) => (
     </Button>
   </Card>
 );
+
+const Home = () => {
+  return (
+    <div className="space-y-8 max-w-7xl mx-auto">
+      {/* Header */}
