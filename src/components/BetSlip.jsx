@@ -22,4 +22,8 @@ const BetSlip = () => {
           <span className="block text-xs font-normal opacity-80 mt-1">to Win</span>
         </button>
         <button className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-4 rounded-xl border border-gray-700 transition-colors">
-          
+          Volkanovski
+          <span className="block text-xs font-normal opacity-50 mt-1">to Win</span>
+        </button>
+      </div>
+      
