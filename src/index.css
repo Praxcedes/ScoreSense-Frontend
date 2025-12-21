@@ -5,3 +5,8 @@
 body {
   @apply bg-background text-white font-sans antialiased;
 }
+
+/* Custom Scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
