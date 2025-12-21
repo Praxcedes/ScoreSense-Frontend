@@ -10,4 +10,10 @@ const StatItem = ({ title, value, subtext, icon: Icon, isPositive }) => (
       <h3 className="text-3xl font-bold text-white mt-2">{value}</h3>
       <p className={`text-sm mt-1 font-medium ${isPositive ? 'text-primary' : 'text-primary'}`}>
         {subtext}
-        
+        </p>
+    </div>
+    <div className="absolute right-4 top-4 opacity-10 group-hover:opacity-20 transition-opacity">
+      <Icon className="w-16 h-16 text-white" />
+    </div>
+  </Card>
+);
