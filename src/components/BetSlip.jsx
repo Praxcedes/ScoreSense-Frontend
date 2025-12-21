@@ -42,4 +42,10 @@ const BetSlip = () => {
           <span>1000 VP</span>
         </div>
       </div>
+
+      <div className="flex justify-between items-center bg-black/40 p-4 rounded-xl mb-6 border border-gray-800">
+        <span className="text-muted text-sm">Potential Return</span>
+        <span className="text-2xl font-bold text-primary font-mono">{(wager * 1.5).toFixed(0)} VP</span>
+      </div>
+
       
