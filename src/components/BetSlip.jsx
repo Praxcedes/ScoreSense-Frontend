@@ -10,7 +10,7 @@ const BetSlip = () => {
     <Card className="sticky top-4 border-primary/20 bg-surface/50 backdrop-blur">
       <div className="flex justify-between items-center mb-6">
         <h3 className="font-bold flex items-center gap-2 text-white">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> 
           Make Prediction
         </h3>
         <span className="text-xs bg-gray-800 px-2 py-1 rounded text-muted border border-gray-700">x1.5 Multiplier</span>
@@ -54,4 +54,5 @@ const BetSlip = () => {
     </Card>
   );
 };
+
 export default BetSlip;
