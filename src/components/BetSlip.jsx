@@ -26,4 +26,10 @@ const BetSlip = () => {
           <span className="block text-xs font-normal opacity-50 mt-1">to Win</span>
         </button>
       </div>
-      
+
+      <div className="mb-6 space-y-4">
+        <div className="flex justify-between text-sm">
+          <span className="text-muted">Wager Amount</span>
+          <span className="font-mono font-bold text-primary">{wager} VP</span>
+        </div>
+        
