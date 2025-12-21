@@ -16,4 +16,16 @@ const StatItem = ({ title, value, subtext, icon: Icon, isPositive }) => (
       <Icon className="w-16 h-16 text-white" />
     </div>
   </Card>
-);
+);const StatsGrid = () => {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <StatItem title="Total Points" value="12,500 VP" subtext="Wallet Balance" icon={Wallet} />
+      <StatItem title="Win Rate" value="64%" subtext="+2.5% vs last week" icon={TrendingUp} isPositive={true} />
+      <StatItem title="Global Rank" value="#102" subtext="Top 5% of users" icon={Globe} />
+      <StatItem title="Earned Today" value="+450 VP" subtext="3 Correct Predictions" icon={DollarSign} isPositive={true} />
+    </div>
+  );
+};
+
+
+
