@@ -56,6 +56,9 @@ const Predict = () => {
                    <div className="bg-primary h-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: stat.w }}></div>
                    <div className="bg-gray-700 h-full flex-1"></div>
                  </div>
-                 
+                 </div>
+             ))}
+          </Card>
+          
 
       
