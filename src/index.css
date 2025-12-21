@@ -13,3 +13,6 @@ body {
 ::-webkit-scrollbar-track {
   @apply bg-background;
 }
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-800 rounded-full;
+}
