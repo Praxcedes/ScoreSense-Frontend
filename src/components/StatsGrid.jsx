@@ -26,6 +26,5 @@ const StatItem = ({ title, value, subtext, icon: Icon, isPositive }) => (
     </div>
   );
 };
-
-
+export default StatsGrid;
 
