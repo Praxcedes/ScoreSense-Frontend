@@ -40,4 +40,17 @@ const Sidebar = () => {
           </NavLink>
         ))}
       </nav>
-      
+      {/* User Footer */}
+      <div className="p-4 border-t border-gray-800 m-4 bg-gray-900/50 rounded-2xl">
+        <div className="flex items-center gap-3 cursor-pointer">
+          <img src="https://ui-avatars.com/api/?name=Juma&background=10b981&color=fff" alt="Juma" className="w-10 h-10 rounded-full border-2 border-primary"/>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-white">Juma</p>
+            <p className="text-xs text-muted">Analyst Lvl 4</p>
+          </div>
+          <LogOut size={16} className="text-muted hover:text-white" />
+        </div>
+      </div>
+    </aside>
+  );
+};
