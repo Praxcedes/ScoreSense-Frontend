@@ -42,5 +42,9 @@ const Predict = () => {
         <Card>
              <h3 className="font-bold text-white mb-6">Head-to-Head Stats</h3>
              {[
+              { label: "Striking Accuracy", left: "58%", right: "52%", w: "58%" },
+               { label: "Takedowns Avg", left: "3.24", right: "1.52", w: "70%" },
+               { label: "Sig. Strikes / Min", left: "6.2", right: "4.8", w: "60%" }
+             ].map((stat, idx) => (
 
       
