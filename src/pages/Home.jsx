@@ -51,7 +51,10 @@ const Home = () => {
             <div className="w-1.5 h-6 bg-primary rounded-full"></div>
             Live & Upcoming
           </h2>
-          
-
+          <div className="flex gap-2 bg-surface p-1 rounded-lg border border-border">
+            <button className="px-4 py-1.5 bg-primary text-black font-bold rounded-md text-sm shadow-md">Football</button>
+            <button className="px-4 py-1.5 text-muted hover:text-white text-sm transition-colors">UFC</button>
+          </div>
+        </div>
 
       
