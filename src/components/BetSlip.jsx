@@ -54,3 +54,4 @@ const BetSlip = () => {
     </Card>
   );
 };
+export default BetSlip;
