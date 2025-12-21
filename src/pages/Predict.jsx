@@ -75,7 +75,11 @@ const Predict = () => {
         <div className="lg:col-span-1">
           <BetSlip />
         </div>
-        
+        </div>
+    </div>
+  );
+};
+
 
 
 
