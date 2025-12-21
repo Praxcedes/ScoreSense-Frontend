@@ -21,4 +21,17 @@ const Sidebar = () => {
         <span className="font-bold text-xl text-white tracking-tight">ScoreSense</span>
       </div>
 
-    
+    {/* Nav Links */}
+      <nav className="flex-1 px-4 space-y-2 mt-4">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                isActive 
+                  ? 'bg-primary text-black font-bold shadow-lg shadow-primary/20' 
+                  : 'text-muted hover:bg-gray-800/50 hover:text-white'
+              }`
+            }
+            
