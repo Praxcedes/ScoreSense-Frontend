@@ -19,4 +19,7 @@ const BetSlip = () => {
       <div className="grid grid-cols-2 gap-3 mb-6">
         <button className="bg-primary text-black font-bold py-4 rounded-xl ring-2 ring-primary relative overflow-hidden transition-transform active:scale-95">
           Makhachev
+          <span className="block text-xs font-normal opacity-80 mt-1">to Win</span>
+        </button>
+        <button className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-4 rounded-xl border border-gray-700 transition-colors">
           
