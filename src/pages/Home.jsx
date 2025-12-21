@@ -12,4 +12,9 @@ const MatchCard = ({ teamA, teamB, time, status }) => (
         </span>
       <span className="text-primary text-xs font-bold">2.5x Multiplier</span>
     </div>
-    
+    <div className="flex justify-between items-center text-center py-2">
+      <div className="flex flex-col items-center gap-2">
+        <div className="w-14 h-14 bg-gray-800 rounded-full flex items-center justify-center text-2xl border border-gray-700 group-hover:border-primary transition-colors">🛡️</div>
+        <p className="font-bold text-white text-sm">{teamA}</p>
+      </div>
+      
