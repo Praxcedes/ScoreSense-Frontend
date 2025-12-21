@@ -22,4 +22,9 @@ const MatchCard = ({ teamA, teamB, time, status }) => (
         <div className="w-14 h-14 bg-gray-800 rounded-full flex items-center justify-center text-2xl border border-gray-700 group-hover:border-primary transition-colors">🦁</div>
         <p className="font-bold text-white text-sm">{teamB}</p>
       </div>
-      
+      </div>
+    <Button variant={status === 'LIVE' ? 'primary' : 'ghost'} className="w-full mt-6 text-sm">
+      {status === 'LIVE' ? 'Predict Live' : 'Make Prediction'}
+    </Button>
+  </Card>
+);
