@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Wallet, TrendingUp, Globe, DollarSign } from 'lucide-react';
 import Card from '../../common/Card';
@@ -10,13 +9,15 @@ const StatItem = ({ title, value, subtext, icon: Icon, isPositive }) => (
       <h3 className="text-3xl font-bold text-white mt-2">{value}</h3>
       <p className={`text-sm mt-1 font-medium ${isPositive ? 'text-primary' : 'text-primary'}`}>
         {subtext}
-        </p>
+      </p>
     </div>
     <div className="absolute right-4 top-4 opacity-10 group-hover:opacity-20 transition-opacity">
       <Icon className="w-16 h-16 text-white" />
     </div>
   </Card>
-);const StatsGrid = () => {
+);
+
+const StatsGrid = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
       <StatItem title="Total Points" value="12,500 VP" subtext="Wallet Balance" icon={Wallet} />
@@ -26,5 +27,5 @@ const StatItem = ({ title, value, subtext, icon: Icon, isPositive }) => (
     </div>
   );
 };
-export default StatsGrid;
 
+export default StatsGrid;
