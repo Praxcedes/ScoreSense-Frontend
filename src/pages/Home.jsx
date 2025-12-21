@@ -38,3 +38,9 @@ const Home = () => {
           <h1 className="text-4xl font-bold text-white tracking-tight">Welcome back, Juma</h1>
           <p className="text-muted mt-2">Your analytics overview for today.</p>
         </div>
+        <div className="bg-primary/10 text-primary px-5 py-2.5 rounded-full font-bold flex items-center gap-3 border border-primary/20">
+          <Wallet className="w-4 h-4" /> 12,500 VP 
+          <div className="w-6 h-6 bg-primary rounded-full text-black flex items-center justify-center text-sm cursor-pointer hover:bg-white">+</div>
+        </div>
+      </div>
+      
