@@ -30,4 +30,9 @@ const Predict = () => {
             <div className="w-32 h-32 rounded-full border-4 border-gray-700 grayscale mx-auto bg-gray-800 overflow-hidden mb-4 group-hover:grayscale-0 transition-all">
                 <img src="https://ui-avatars.com/api/?name=Volkanovski&background=374151&color=fff&size=128" alt="Volk" />
             </div>
-            
+            <h2 className="text-3xl font-bold text-gray-400 group-hover:text-white transition-colors">Volkanovski</h2>
+            <p className="text-muted font-mono mt-1">26-2-0</p>
+          </div>
+        </div>
+      </div>
+      
