@@ -12,4 +12,9 @@ const Predict = () => {
           UFC 294 • Lightweight Title Bout
         </div>
 
-        
+        <div className="flex flex-col md:flex-row justify-center items-center gap-8 md:gap-16 py-6">
+          <div className="text-center group">
+            <div className="w-32 h-32 rounded-full border-4 border-primary shadow-[0_0_30px_rgba(16,185,129,0.3)] mx-auto bg-gray-800 overflow-hidden mb-4 group-hover:scale-105 transition-transform">
+               <img src="https://ui-avatars.com/api/?name=Islam+Makhachev&background=10b981&color=fff&size=128" alt="Makhachev" />
+            </div>
+            
