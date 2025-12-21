@@ -46,5 +46,11 @@ const Predict = () => {
                { label: "Takedowns Avg", left: "3.24", right: "1.52", w: "70%" },
                { label: "Sig. Strikes / Min", left: "6.2", right: "4.8", w: "60%" }
              ].map((stat, idx) => (
+              <div key={idx} className="mb-6 last:mb-0">
+                 <div className="flex justify-between text-sm mb-2 font-mono">
+                   <span>{stat.left}</span>
+                   <span className="text-muted font-bold uppercase font-sans text-xs">{stat.label}</span>
+                   <span>{stat.right}</span>
+                   
 
       
