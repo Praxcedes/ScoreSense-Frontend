@@ -67,6 +67,9 @@ const Predict = () => {
               <p className="text-gray-400 text-sm leading-relaxed mt-2">
                 While Volkanovski showed resilience in their first bout, Makhachev's grappling dominance remains the critical factor. The shorter notice is a significant disadvantage for Volkanovski's cardio in later rounds.
               </p>
-              
+              </div>
+          </div>
+        </div>
+        
 
       
