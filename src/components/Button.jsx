@@ -6,5 +6,9 @@ const Button = ({ children , variant = 'primary', className = "", ...props }) =>
     primary: "bg-primary text-black hover:bg-green-400 shadow-lg shadow-green-900/20",
     outline: "bg-transparent border border-gray-700 text-white hover:bg-gray-800",
     ghost: "text-muted hover:text-white"
-  }
+  };
+
+  return (
+    
+  )
 }
