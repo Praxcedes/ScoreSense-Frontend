@@ -34,4 +34,10 @@ const Sidebar = () => {
                   : 'text-muted hover:bg-gray-800/50 hover:text-white'
               }`
             }
-            
+            >
+            <item.icon className="w-5 h-5" />
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+      
