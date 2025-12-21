@@ -63,5 +63,10 @@ const Predict = () => {
           <div className="bg-primary/5 p-6 rounded-2xl border border-primary/20 flex gap-4 items-start">
             <div className="p-3 bg-primary/10 rounded-xl text-primary"><Zap size={24}/></div>
             <div>
+              <h4 className="font-bold text-lg text-primary">Expert Insight</h4>
+              <p className="text-gray-400 text-sm leading-relaxed mt-2">
+                While Volkanovski showed resilience in their first bout, Makhachev's grappling dominance remains the critical factor. The shorter notice is a significant disadvantage for Volkanovski's cardio in later rounds.
+              </p>
+              
 
       
