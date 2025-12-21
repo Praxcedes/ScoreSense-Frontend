@@ -48,4 +48,9 @@ const BetSlip = () => {
         <span className="text-2xl font-bold text-primary font-mono">{(wager * 1.5).toFixed(0)} VP</span>
       </div>
 
-      
+      <Button className="w-full">
+        Submit Prediction <ChevronRight size={20} />
+      </Button>
+    </Card>
+  );
+};
