@@ -62,6 +62,10 @@ const Home = () => {
           <MatchCard teamA="Arsenal" teamB="Liverpool" time="Today, 19:45" status="UPCOMING" />
           <MatchCard teamA="Real Madrid" teamB="Barca" time="Sat, 22:00" status="UPCOMING" />
         </div>
-        
+        </div>
+    </div>
+  );
+};
+
 
       
