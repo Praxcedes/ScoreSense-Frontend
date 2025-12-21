@@ -33,3 +33,8 @@ const Home = () => {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-white tracking-tight">Welcome back, Juma</h1>
+          <p className="text-muted mt-2">Your analytics overview for today.</p>
+        </div>
