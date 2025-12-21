@@ -70,6 +70,13 @@ const Predict = () => {
               </div>
           </div>
         </div>
+
+        {/* Right Col: Bet Slip */}
+        <div className="lg:col-span-1">
+          <BetSlip />
+        </div>
         
+
+
 
       
