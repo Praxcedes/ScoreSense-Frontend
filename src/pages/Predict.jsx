@@ -21,3 +21,7 @@ const Predict = () => {
             <p className="text-muted font-mono mt-1">24-1-0</p>
           </div>
           
+           <div className="text-center flex flex-col items-center">
+            <span className="text-6xl font-black text-gray-800 select-none">VS</span>
+            <p className="text-primary mt-2 font-mono text-sm bg-primary/10 px-3 py-1 rounded">5 Rounds</p>
+          </div>
