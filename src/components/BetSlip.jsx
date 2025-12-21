@@ -37,4 +37,9 @@ const BetSlip = () => {
           onChange={(e) => setWager(e.target.value)}
           className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary"
         />
-        
+        <div className="flex justify-between text-xs text-muted font-mono">
+          <span>10 VP</span>
+          <span>1000 VP</span>
+        </div>
+      </div>
+      
