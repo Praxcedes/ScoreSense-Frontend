@@ -17,4 +17,7 @@ const Predict = () => {
             <div className="w-32 h-32 rounded-full border-4 border-primary shadow-[0_0_30px_rgba(16,185,129,0.3)] mx-auto bg-gray-800 overflow-hidden mb-4 group-hover:scale-105 transition-transform">
                <img src="https://ui-avatars.com/api/?name=Islam+Makhachev&background=10b981&color=fff&size=128" alt="Makhachev" />
             </div>
-            
+            <h2 className="text-3xl font-bold text-white">Makhachev</h2>
+            <p className="text-muted font-mono mt-1">24-1-0</p>
+          </div>
+          
