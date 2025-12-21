@@ -15,4 +15,8 @@ const BetSlip = () => {
         </h3>
         <span className="text-xs bg-gray-800 px-2 py-1 rounded text-muted border border-gray-700">x1.5 Multiplier</span>
       </div>
-      
+
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <button className="bg-primary text-black font-bold py-4 rounded-xl ring-2 ring-primary relative overflow-hidden transition-transform active:scale-95">
+          Makhachev
+          
