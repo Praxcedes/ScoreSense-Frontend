@@ -1,19 +1,15 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
-        background: "#0a0a0a", // Deep black background
+        background: "#050505", // Deepest black
         surface: "#111827",    // Card background
-        primary: "#10b981",    // Emerald Green (ScoreSense Brand)
-        secondary: "#34d399",  // Lighter green for accents
-        accent: "#064e3b",     // Dark green for backgrounds
-        text: "#f3f4f6",       // White/Gray text
-        muted: "#9ca3af",      // Muted text
+        primary: "#10b981",    // Emerald Green (Brand)
+        secondary: "#34d399",  // Lighter Green
+        muted: "#9ca3af",      // Gray text
+        border: "#1f2937",     // Dark gray borders
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
