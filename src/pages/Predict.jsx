@@ -20,8 +20,14 @@ const Predict = () => {
             <h2 className="text-3xl font-bold text-white">Makhachev</h2>
             <p className="text-muted font-mono mt-1">24-1-0</p>
           </div>
-          
+
            <div className="text-center flex flex-col items-center">
             <span className="text-6xl font-black text-gray-800 select-none">VS</span>
             <p className="text-primary mt-2 font-mono text-sm bg-primary/10 px-3 py-1 rounded">5 Rounds</p>
           </div>
+
+          <div className="text-center group">
+            <div className="w-32 h-32 rounded-full border-4 border-gray-700 grayscale mx-auto bg-gray-800 overflow-hidden mb-4 group-hover:grayscale-0 transition-all">
+                <img src="https://ui-avatars.com/api/?name=Volkanovski&background=374151&color=fff&size=128" alt="Volk" />
+            </div>
+            
