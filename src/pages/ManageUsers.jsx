@@ -30,4 +30,8 @@ return (
         </div>
         <Button variant="outline">Filter <Filter size={14}/></Button>
       </div>
-      
+
+      <div className="bg-surface rounded-2xl border border-border overflow-hidden">
+        <table className="w-full text-left">
+          <thead className="bg-gray-900/50 text-xs uppercase text-muted font-bold">
+            
