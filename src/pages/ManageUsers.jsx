@@ -51,4 +51,10 @@ return (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-xs font-bold text-muted border border-gray-700">
                       {user.name.charAt(0)}
-                      
+                      </div>
+                    <div>
+                      <p className="font-bold">{user.name}</p>
+                      <p className="text-xs text-muted">{user.email}</p>
+                    </div>
+                  </div>
+                  
