@@ -42,4 +42,13 @@ return (
               <th className="p-5">Status</th>
               <th className="p-5 text-right">Actions</th>
             </tr>
-            
+            </thead>
+          <tbody className="divide-y divide-gray-800 text-sm">
+            {users.map(user => (
+              <tr key={user.id} className="hover:bg-gray-800/30 transition-colors text-white group">
+                <td className="p-5 font-mono text-primary font-medium">{user.id}</td>
+                <td className="p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-xs font-bold text-muted border border-gray-700">
+                      {user.name.charAt(0)}
+                      
