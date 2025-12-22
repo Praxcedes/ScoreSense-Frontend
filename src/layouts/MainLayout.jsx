@@ -1,12 +1,11 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-
+import { Outlet } from "react-router-dom";
+import Sidebar from "../components/layout/Sidebar";
 
 const MainLayout = () => {
   return (
-    <div className="flex bg-background min-h-screen text-white font-sans">
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <main className="flex-1 md:ml-64 p-4 md:p-8 transition-all duration-300">
+      <main className="flex-1 p-6">
         <Outlet />
       </main>
     </div>
