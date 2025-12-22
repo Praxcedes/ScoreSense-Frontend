@@ -34,4 +34,12 @@ return (
       <div className="bg-surface rounded-2xl border border-border overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gray-900/50 text-xs uppercase text-muted font-bold">
+            <tr>
+              <th className="p-5">User ID</th>
+              <th className="p-5">User</th>
+              <th className="p-5">Points</th>
+              <th className="p-5">Region</th>
+              <th className="p-5">Status</th>
+              <th className="p-5 text-right">Actions</th>
+            </tr>
             
