@@ -1,3 +1,10 @@
 import React from 'react';
 import Button from '../../components/common/Button';
 
+const Login = () => {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-surface border border-border p-8 rounded-3xl shadow-2xl shadow-green-900/10">
+            <h1 className="text-3xl font-bold text-white text-center mb-2">Create Analyst Account</h1>
+            <p className="text-muted text-center text-sm mb-8">Analyze matches. Earn virtual points. <span className="text-white font-bold">No real money involved.</span></p>
+            
