@@ -10,3 +10,7 @@ import Home from './pages/dashboard/Home';
 import Predict from './pages/dashboard/Predict';
 import ManageUsers from './pages/admin/ManageUsers';
 import Login from './pages/auth/Login';
+
+function App() {
+  return (
+    
