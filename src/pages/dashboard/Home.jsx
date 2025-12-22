@@ -2,8 +2,11 @@ import StatsGrid from "../../components/features/dashboard/StatsGrid";
 
 const Home = () => {
   return (
-    <div>
-      <h2 className="text-xl mb-4 text-green-400">Dashboard</h2>
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold text-green-400">
+        Overview
+      </h2>
+
       <StatsGrid />
     </div>
   );
