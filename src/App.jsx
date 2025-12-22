@@ -24,4 +24,8 @@ function App() {
             <Route path="/dashboard" element={<Home />} />
             <Route path="/predict" element={<Predict />} />
             <Route path="/admin" element={<ManageUsers />} />
-            
+            {/* Placeholders for future routes */}
+            <Route path="/tournaments" element={<div className="text-center mt-20 text-muted">Tournaments Coming Soon</div>} />
+            <Route path="/leaderboard" element={<div className="text-center mt-20 text-muted">Leaderboard Coming Soon</div>} />
+          </Route>
+          
