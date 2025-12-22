@@ -9,7 +9,8 @@ const MainLayout = () => {
       <main className="flex-1 md:ml-64 p-4 md:p-8 transition-all duration-300">
         <Outlet />
       </main>
-      </div>
+    </div>
   );
 };
+
 export default MainLayout;
