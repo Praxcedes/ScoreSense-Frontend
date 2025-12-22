@@ -18,4 +18,10 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          
+
+          {/* Protected Routes */}
+          <Route element={<MainLayout />}>
+            <Route path="/dashboard" element={<Home />} />
+            <Route path="/predict" element={<Predict />} />
+            <Route path="/admin" element={<ManageUsers />} />
+            
