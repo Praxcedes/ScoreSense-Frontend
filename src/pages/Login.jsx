@@ -26,4 +26,6 @@ const Login = () => {
                         <span className="text-sm text-gray-400">I confirm I am <span className="text-white font-bold">over 18 years of age</span>.</span>
                     </label>
                 </div>
-                
+                <Button className="w-full mt-6 py-4 text-base">Create Account →</Button>
+            </form>
+            
