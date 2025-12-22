@@ -63,4 +63,10 @@ return (
                 <td className="p-5"><span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${user.color}`}>{user.status}</span></td>
                 <td className="p-5 text-right"><button className="text-gray-500 hover:text-white transition-colors"><MoreVertical size={18}/></button></td>
               </tr>
-              
+              ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
