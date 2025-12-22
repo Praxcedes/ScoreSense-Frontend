@@ -18,7 +18,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
+          
           {/* Protected Routes */}
           <Route element={<MainLayout />}>
             <Route path="/dashboard" element={<Home />} />
@@ -28,9 +28,10 @@ function App() {
             <Route path="/tournaments" element={<div className="text-center mt-20 text-muted">Tournaments Coming Soon</div>} />
             <Route path="/leaderboard" element={<div className="text-center mt-20 text-muted">Leaderboard Coming Soon</div>} />
           </Route>
-          </Routes>
+        </Routes>
       </BrowserRouter>
     </AuthProvider>
   );
 }
+
 export default App;
