@@ -15,4 +15,7 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          
