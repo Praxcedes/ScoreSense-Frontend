@@ -28,4 +28,9 @@ const Login = () => {
                 </div>
                 <Button className="w-full mt-6 py-4 text-base">Create Account →</Button>
             </form>
-            
+            <p className="text-center text-muted text-sm mt-6">
+                Already have an analyst account? <a href="#" className="text-primary font-bold hover:underline">Log in</a>
+            </p>
+        </div>
+    </div>
+    
