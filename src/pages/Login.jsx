@@ -16,4 +16,8 @@ const Login = () => {
                     <label className="text-xs font-bold uppercase text-muted mb-1 block">Email Address</label>
                     <input type="email" placeholder="analyst@example.com" className="w-full bg-background border border-border p-3 rounded-xl text-white focus:border-primary focus:outline-none transition-colors" />
                 </div>
+                <div>
+                    <label className="text-xs font-bold uppercase text-muted mb-1 block">Password</label>
+                    <input type="password" placeholder="Create a strong password" className="w-full bg-background border border-border p-3 rounded-xl text-white focus:border-primary focus:outline-none transition-colors" />
+                </div>
                 
