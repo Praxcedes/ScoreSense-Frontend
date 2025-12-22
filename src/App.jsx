@@ -5,3 +5,5 @@ import { AuthProvider } from './context/AuthContext';
 // Layouts
 import MainLayout from './layouts/MainLayout';
 
+// Pages
+import Home from './pages/dashboard/Home';
