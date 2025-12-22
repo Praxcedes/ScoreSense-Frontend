@@ -13,4 +13,6 @@ import Login from './pages/auth/Login';
 
 function App() {
   return (
-    
+    <AuthProvider>
+      <BrowserRouter>
+        
