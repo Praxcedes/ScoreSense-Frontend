@@ -20,4 +20,10 @@ const Login = () => {
                     <label className="text-xs font-bold uppercase text-muted mb-1 block">Password</label>
                     <input type="password" placeholder="Create a strong password" className="w-full bg-background border border-border p-3 rounded-xl text-white focus:border-primary focus:outline-none transition-colors" />
                 </div>
+                <div className="space-y-3 pt-2">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className="w-5 h-5 rounded-md border border-gray-600 group-hover:border-primary flex items-center justify-center transition-colors"></div>
+                        <span className="text-sm text-gray-400">I confirm I am <span className="text-white font-bold">over 18 years of age</span>.</span>
+                    </label>
+                </div>
                 
