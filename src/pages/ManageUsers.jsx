@@ -10,7 +10,7 @@ const ManageUsers = () => {
     { id: '#USR-8924', name: 'David Kamau', email: 'david.k99@yahoo.com', points: '0', region: 'Nakuru', status: 'Suspended', color: 'text-red-400 bg-red-400/10 border-red-400/20' },
   ];
 
-return (
+  return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center">
         <div>
@@ -42,7 +42,7 @@ return (
               <th className="p-5">Status</th>
               <th className="p-5 text-right">Actions</th>
             </tr>
-            </thead>
+          </thead>
           <tbody className="divide-y divide-gray-800 text-sm">
             {users.map(user => (
               <tr key={user.id} className="hover:bg-gray-800/30 transition-colors text-white group">
@@ -51,23 +51,24 @@ return (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-xs font-bold text-muted border border-gray-700">
                       {user.name.charAt(0)}
-                      </div>
+                    </div>
                     <div>
                       <p className="font-bold">{user.name}</p>
                       <p className="text-xs text-muted">{user.email}</p>
                     </div>
                   </div>
-                  </td>
+                </td>
                 <td className="p-5 font-mono">{user.points}</td>
                 <td className="p-5 text-muted">{user.region}</td>
                 <td className="p-5"><span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${user.color}`}>{user.status}</span></td>
                 <td className="p-5 text-right"><button className="text-gray-500 hover:text-white transition-colors"><MoreVertical size={18}/></button></td>
               </tr>
-              ))}
+            ))}
           </tbody>
         </table>
       </div>
     </div>
   );
 };
+
 export default ManageUsers;
