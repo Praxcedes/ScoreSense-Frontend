@@ -22,4 +22,12 @@ return (
           <Button><ShieldCheck size={18} /> Create User</Button>
         </div>
       </div>
+
+      <div className="flex justify-between mb-4">
+        <div className="relative w-96">
+          <Search className="absolute left-3 top-3.5 text-gray-500" size={18} />
+          <input type="text" placeholder="Search users..." className="w-full bg-surface border border-border text-white pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-primary placeholder-gray-600"/>
+        </div>
+        <Button variant="outline">Filter <Filter size={14}/></Button>
+      </div>
       
