@@ -28,4 +28,8 @@ function App() {
             <Route path="/tournaments" element={<div className="text-center mt-20 text-muted">Tournaments Coming Soon</div>} />
             <Route path="/leaderboard" element={<div className="text-center mt-20 text-muted">Leaderboard Coming Soon</div>} />
           </Route>
-          
+          </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}
