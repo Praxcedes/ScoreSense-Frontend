@@ -1,9 +1,5 @@
 import { useForm } from "react-hook-form";
 
-/**
- * Generic auth form
- * fields: [{ name, label, type }]
- */
 export default function AuthForm({ fields, onSubmit, loading, buttonText }) {
   const { register, handleSubmit, formState: { errors } } = useForm();
 
