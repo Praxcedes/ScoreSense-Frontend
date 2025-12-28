@@ -1,18 +1,31 @@
-import React, { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState } from "react";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState({ name: 'Juma', role: 'analyst', points: 12500 });
+export function AuthProvider({ children }) {
+  // MOCK USER (replace with API later)
+  const [user, setUser] = useState({
+    id: 1,
+    name: "Admin User",
+    role: "admin", // "user" | "admin"
+    token: "fake-jwt-token",
+  });
 
-  const login = (userData) => setUser(userData);
-  const logout = () => setUser(null);
+  const login = (userData) => {
+    setUser(userData);
+  };
+
+  const logout = () => {
+    setUser(null);
+  };
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  return useContext(AuthContext);
+}
