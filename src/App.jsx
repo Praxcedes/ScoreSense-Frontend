@@ -6,6 +6,7 @@ import AuthLayout from "./layouts/AuthLayout";
 
 /* Route Guards */
 import AdminRoute from "./routes/AdminRoute";
+import PublicRoute from "./routes/PublicRoute";
 
 /* Auth Pages */
 import Login from "./pages/auth/Login";
@@ -23,10 +24,25 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+
         {/* ================= AUTH ROUTES ================= */}
         <Route element={<AuthLayout />}>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            }
+          />
         </Route>
 
         {/* ================= ADMIN ROUTES ================= */}
@@ -45,6 +61,7 @@ export default function App() {
           <Route path="points" element={<Points />} />
           <Route path="config" element={<Config />} />
         </Route>
+
       </Routes>
     </BrowserRouter>
   );
