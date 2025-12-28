@@ -3,16 +3,27 @@ import { createContext, useContext, useState } from "react";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // MOCK USER (replace with API later)
-  const [user, setUser] = useState({
-    id: 1,
-    name: "Admin User",
-    role: "admin", // "user" | "admin"
-    token: "fake-jwt-token",
-  });
+  const [user, setUser] = useState(null);
 
-  const login = (userData) => {
-    setUser(userData);
+  const login = (credentials) => {
+    // 🔥 MOCK LOGIN (replace with API later)
+    const fakeUser =
+      credentials.email === "admin@scoresense.com"
+        ? {
+            id: 1,
+            name: "Admin User",
+            role: "admin",
+            token: "admin-token",
+          }
+        : {
+            id: 2,
+            name: "Regular User",
+            role: "user",
+            token: "user-token",
+          };
+
+    setUser(fakeUser);
+    return fakeUser;
   };
 
   const logout = () => {
