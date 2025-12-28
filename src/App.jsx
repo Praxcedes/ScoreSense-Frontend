@@ -1,27 +1,26 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import MainLayout from "./layouts/MainLayout";
-import AuthLayout from "./layouts/AuthLayout";
-import Home from "./pages/dashboard/Home";
-import Predict from "./pages/dashboard/Predict";
-import Login from "./pages/auth/Login";
-import ManageUsers from "./pages/admin/ManageUsers";
+import AdminLayout from "./layouts/AdminLayout";
 
-function App() {
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import Users from "./pages/admin/Users";
+import Tournaments from "./pages/admin/Tournaments";
+import Events from "./pages/admin/Events";
+import Points from "./pages/admin/Points";
+import Config from "./pages/admin/Config";
+
+export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/predict" element={<Predict />} />
-          <Route path="/admin" element={<ManageUsers />} />
-        </Route>
-
-        <Route element={<AuthLayout />}>
-          <Route path="/login" element={<Login />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<Users />} />
+          <Route path="tournaments" element={<Tournaments />} />
+          <Route path="events" element={<Events />} />
+          <Route path="points" element={<Points />} />
+          <Route path="config" element={<Config />} />
         </Route>
       </Routes>
     </BrowserRouter>
   );
 }
-
-export default App;
