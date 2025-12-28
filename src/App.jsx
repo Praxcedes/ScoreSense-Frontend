@@ -1,7 +1,17 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+/* Layouts */
 import AdminLayout from "./layouts/AdminLayout";
+import AuthLayout from "./layouts/AuthLayout";
+
+/* Route Guards */
 import AdminRoute from "./routes/AdminRoute";
 
+/* Auth Pages */
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+
+/* Admin Pages */
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import Users from "./pages/admin/Users";
 import Tournaments from "./pages/admin/Tournaments";
@@ -13,6 +23,13 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* ================= AUTH ROUTES ================= */}
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+        </Route>
+
+        {/* ================= ADMIN ROUTES ================= */}
         <Route
           path="/admin"
           element={
