@@ -14,7 +14,7 @@ export default function Login() {
 
     const user = login({ email, password });
 
-    // 🚀 ROLE-BASED REDIRECT
+    //  ROLE-BASED REDIRECT
     if (user.role === "admin") {
       navigate("/admin");
     } else {
