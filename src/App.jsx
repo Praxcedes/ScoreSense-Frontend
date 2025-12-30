@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+
 /* Layouts */
+import TournamentLobby from "./pages/tournaments/Lobby";
+
 import AdminLayout from "./layouts/AdminLayout";
 import AuthLayout from "./layouts/AuthLayout";
 
@@ -19,6 +22,7 @@ import Tournaments from "./pages/admin/Tournaments";
 import Events from "./pages/admin/Events";
 import Points from "./pages/admin/Points";
 import Config from "./pages/admin/Config";
+
 
 export default function App() {
   return (
@@ -59,7 +63,9 @@ export default function App() {
           <Route path="tournaments" element={<Tournaments />} />
           <Route path="events" element={<Events />} />
           <Route path="points" element={<Points />} />
+          <Route path="/tournaments" element={<TournamentLobby />} />
           <Route path="config" element={<Config />} />
+
         </Route>
         
 
