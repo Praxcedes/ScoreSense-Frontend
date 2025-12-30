@@ -4,7 +4,9 @@ import { useAuth } from "../context/AuthContext";
 export default function AdminRoute({ children }) {
   const { user } = useAuth();
 
-  if (!user || user.role !== "admin") {
+  console.log("AdminRoute user:", user);
+
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 

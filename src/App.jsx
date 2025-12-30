@@ -61,6 +61,7 @@ export default function App() {
           <Route path="points" element={<Points />} />
           <Route path="config" element={<Config />} />
         </Route>
+        
 
       </Routes>
     </BrowserRouter>
