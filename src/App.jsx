@@ -63,7 +63,6 @@ export default function App() {
           <Route path="tournaments" element={<Tournaments />} />
           <Route path="events" element={<Events />} />
           <Route path="points" element={<Points />} />
-          <Route path="/tournaments" element={<TournamentLobby />} />
           <Route path="config" element={<Config />} />
 
         </Route>
