@@ -10,22 +10,21 @@ export default function Login() {
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    // 🔴 TEMP FAKE LOGIN (replace with API later)
-    if (email === "admin@scoresense.com" && password === "admin123") {
-      login({
-        id: 1,
-        name: "Admin",
-        email,
-        role: "admin",
-      });
+  console.log("Login submit clicked");
 
-      navigate("/admin");
-    } else {
-      alert("Invalid credentials");
-    }
-  };
+  login({
+    id: 1,
+    name: "Admin",
+    email,
+    role: "admin",
+  });
+
+  console.log("User saved, navigating...");
+  navigate("/admin");
+};
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black">
