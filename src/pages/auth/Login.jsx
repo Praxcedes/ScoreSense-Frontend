@@ -1,72 +1,62 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Login() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const user = login({ email, password });
+    // 🔴 TEMP FAKE LOGIN (replace with API later)
+    if (email === "admin@scoresense.com" && password === "admin123") {
+      login({
+        id: 1,
+        name: "Admin",
+        email,
+        role: "admin",
+      });
 
-    //  ROLE-BASED REDIRECT
-    if (user.role === "admin") {
       navigate("/admin");
     } else {
-      navigate("/");
+      alert("Invalid credentials");
     }
   };
 
   return (
-    <div>
-      <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold text-green-400">
-          ScoreSense
-        </h1>
-        <p className="text-sm text-gray-400">
-          Sign in to your account
-        </p>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-black">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-[#0f172a] p-8 rounded-xl w-[380px] border border-green-500"
+      >
+        <h2 className="text-2xl font-bold text-green-400 mb-6 text-center">
+          ScoreSense Admin Login
+        </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="text-sm text-gray-400">Email</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full mt-1 px-4 py-2 rounded-lg bg-black/40 border border-green-900/40 focus:border-green-500 outline-none"
-          />
-        </div>
+        <input
+          type="email"
+          placeholder="Email"
+          className="w-full p-3 mb-4 bg-black border border-gray-700 rounded text-white"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-        <div>
-          <label className="text-sm text-gray-400">Password</label>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full mt-1 px-4 py-2 rounded-lg bg-black/40 border border-green-900/40 focus:border-green-500 outline-none"
-          />
-        </div>
+        <input
+          type="password"
+          placeholder="Password"
+          className="w-full p-3 mb-6 bg-black border border-gray-700 rounded text-white"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-        <button className="w-full mt-4 py-2 rounded-lg bg-green-500 text-black font-semibold hover:bg-green-400">
-          Sign In
+        <button className="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-3 rounded">
+          Login
         </button>
       </form>
-
-      <p className="text-sm text-center text-gray-400 mt-6">
-        Don’t have an account?{" "}
-        <Link to="/register" className="text-green-400 hover:underline">
-          Create Analyst Account
-        </Link>
-      </p>
     </div>
   );
 }
