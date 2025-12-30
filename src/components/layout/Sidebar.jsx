@@ -1,28 +1,36 @@
-import { Home, BarChart2, Users } from "lucide-react";
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
-const Sidebar = () => {
+export default function Sidebar() {
+  const links = [
+    { to: "/admin", label: "Dashboard" },
+    { to: "/admin/users", label: "Users" },
+    { to: "/admin/tournaments", label: "Tournaments" },
+    { to: "/admin/events", label: "Events" },
+    { to: "/admin/points", label: "Points" },
+    { to: "/admin/config", label: "Config" },
+  ];
+
   return (
-    <aside className="w-64 bg-black border-r border-green-800 p-4">
-      <h1 className="text-2xl font-bold text-green-400 mb-8">
-        ScoreSense
-      </h1>
+    <aside className="w-64 bg-zinc-950 border-r border-green-500/20 p-4">
+      <h2 className="text-green-400 font-bold mb-6">ScoreSense Admin</h2>
 
-      <nav className="space-y-4">
-        <Link to="/" className="flex gap-2 hover:text-green-400">
-          <Home size={18} /> Dashboard
-        </Link>
-
-        <Link to="/predict" className="flex gap-2 hover:text-green-400">
-          <BarChart2 size={18} /> Predict
-        </Link>
-
-        <Link to="/admin" className="flex gap-2 hover:text-green-400">
-          <Users size={18} /> Admin
-        </Link>
+      <nav className="space-y-2">
+        {links.map((link) => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            className={({ isActive }) =>
+              `block px-3 py-2 rounded ${
+                isActive
+                  ? "bg-green-500 text-black"
+                  : "text-gray-400 hover:bg-zinc-800"
+              }`
+            }
+          >
+            {link.label}
+          </NavLink>
+        ))}
       </nav>
     </aside>
   );
-};
-
-export default Sidebar;
+}
