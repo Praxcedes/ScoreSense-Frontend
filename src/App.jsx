@@ -1,27 +1,74 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import MainLayout from "./layouts/MainLayout";
-import AuthLayout from "./layouts/AuthLayout";
-import Home from "./pages/dashboard/Home";
-import Predict from "./pages/dashboard/Predict";
-import Login from "./pages/auth/Login";
-import ManageUsers from "./pages/admin/ManageUsers";
 
-function App() {
+
+/* Layouts */
+import TournamentLobby from "./pages/tournaments/Lobby";
+
+import AdminLayout from "./layouts/AdminLayout";
+import AuthLayout from "./layouts/AuthLayout";
+
+/* Route Guards */
+import AdminRoute from "./routes/AdminRoute";
+import PublicRoute from "./routes/PublicRoute";
+
+/* Auth Pages */
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+
+/* Admin Pages */
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import Users from "./pages/admin/Users";
+import Tournaments from "./pages/admin/Tournaments";
+import Events from "./pages/admin/Events";
+import Points from "./pages/admin/Points";
+import Config from "./pages/admin/Config";
+
+
+export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/predict" element={<Predict />} />
-          <Route path="/admin" element={<ManageUsers />} />
+
+        {/* ================= AUTH ROUTES ================= */}
+        <Route element={<AuthLayout />}>
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            }
+          />
         </Route>
 
-        <Route element={<AuthLayout />}>
-          <Route path="/login" element={<Login />} />
+        {/* ================= ADMIN ROUTES ================= */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<Users />} />
+          <Route path="tournaments" element={<Tournaments />} />
+          <Route path="events" element={<Events />} />
+          <Route path="points" element={<Points />} />
+          <Route path="config" element={<Config />} />
+
         </Route>
+        
+
       </Routes>
     </BrowserRouter>
   );
 }
-
-export default App;
