@@ -1,47 +1,10 @@
 import api from './api'
 
-const normalizeMatch = (match) => {
-  if (!match) return null
-
-  const odds = match.odds || {}
-  const normalizedOdds = {
-    home: odds.home ?? odds.home_win ?? match.odds_home,
-    draw: odds.draw ?? match.odds_draw,
-    away: odds.away ?? odds.away_win ?? match.odds_away,
-  }
-
-  return {
-    id: match.id ?? match.match_id ?? match.event_id,
-    league: match.league_name ?? match.league,
-    venue: match.venue ?? match.stadium ?? null,
-    sport: match.sport ?? match.sport_name,
-    status: match.status ?? match.match_status,
-    time: match.time ?? match.start_time,
-    startTime: match.start_time ?? match.startTime ?? match.start_date,
-    homeTeam: match.homeTeam ?? match.home_team ?? match.home_name,
-    awayTeam: match.awayTeam ?? match.away_team ?? match.away_name,
-    homeLogo: match.homeLogo ?? match.home_team_logo ?? match.home_logo ?? match.homeTeamLogo ?? null,
-    awayLogo: match.awayLogo ?? match.away_team_logo ?? match.away_logo ?? match.awayTeamLogo ?? null,
-    homeScore: match.homeScore ?? match.home_score ?? match.home_team_score ?? 0,
-    awayScore: match.awayScore ?? match.away_score ?? match.away_team_score ?? 0,
-    odds: normalizedOdds,
-    raw: match,
-  }
-}
-
-const normalizeMatchesResponse = (response) => {
-  const matches = response?.matches || response?.data || []
-  return {
-    ...response,
-    matches: matches.map(normalizeMatch).filter(Boolean),
-  }
-}
-
 export const matchesService = {
   async getLiveMatches() {
     try {
       const response = await api.get('/matches/live')
-      return normalizeMatchesResponse(response || { success: false, matches: [], count: 0 })
+      return response || { success: false, matches: [], count: 0 }
     } catch (error) {
       console.error('Error fetching live matches:', error)
       return { 
@@ -61,7 +24,7 @@ export const matchesService = {
       if (league) params.league = league
       
       const response = await api.get('/matches/upcoming', { params })
-      return normalizeMatchesResponse(response || { success: false, matches: [], count: 0 })
+      return response || { success: false, matches: [], count: 0 }
     } catch (error) {
       console.error('Error fetching upcoming matches:', error)
       return { 
@@ -77,10 +40,7 @@ export const matchesService = {
   async getMatchDetails(matchId) {
     try {
       const response = await api.get(`/matches/${matchId}`)
-      const normalized = normalizeMatch(response?.match || response?.data || response)
-      return normalized
-        ? { ...response, match: normalized }
-        : { success: false, match: null, error: 'Match not found' }
+      return response || { success: false, match: null, error: 'Match not found' }
     } catch (error) {
       console.error('Error fetching match details:', error)
       return { 
@@ -96,7 +56,7 @@ export const matchesService = {
       const response = await api.get('/matches/search', { 
         params: { q: query, limit } 
       })
-      return normalizeMatchesResponse(response || { success: false, matches: [], count: 0 })
+      return response || { success: false, matches: [], count: 0 }
     } catch (error) {
       console.error('Error searching matches:', error)
       return { 
@@ -122,7 +82,7 @@ export const matchesService = {
   async getMockMatches(limit = 10) {
     try {
       const response = await api.get('/matches/mock', { params: { limit } })
-      return normalizeMatchesResponse(response || { success: false, matches: [], count: 0 })
+      return response || { success: false, matches: [], count: 0 }
     } catch (error) {
       console.error('Error fetching mock matches:', error)
       return { success: false, matches: [], count: 0, error: error.message }

@@ -159,12 +159,9 @@ const Stats = () => {
         className="card p-6"
       >
         <h2 className="text-xl font-bold mb-6">Sport Performance</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
           {[
-            { sport: 'Football', accuracy: 72, points: 1240 },
-            { sport: 'Basketball', accuracy: 65, points: 850 },
-            { sport: 'Tennis', accuracy: 58, points: 620 },
-            { sport: 'MMA', accuracy: 81, points: 950 }
+            { sport: "Football", accuracy: 72, points: 1240 },
           ].map((item, index) => (
             <div key={index} className="bg-card p-4 rounded-xl">
               <div className="text-center">

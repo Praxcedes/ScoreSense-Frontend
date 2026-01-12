@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { toast } from 'react-hot-toast'
+import { communityService } from '../../services/community.service'
 
 const PostComposer = ({ onPostCreated }) => {
   const { user } = useAuth()
@@ -28,31 +29,25 @@ const PostComposer = ({ onPostCreated }) => {
     }
 
     setIsSubmitting(true)
-    
-    // Simulate API call
-    setTimeout(() => {
-      const newPost = {
-        id: Date.now(),
-        author: {
-          name: user?.username || 'Anonymous',
-          avatar: user?.username?.charAt(0) || 'A',
-          premium: user?.premium || false,
-          rank: user?.rank || '#999'
-        },
-        content,
-        tags,
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        timestamp: 'Just now'
-      }
 
-      onPostCreated?.(newPost)
-      setContent('')
-      setTags([])
+    try {
+      const response = await communityService.createPost({
+        content: content.trim(),
+        postType: 'text'
+      })
+      if (response?.success && response?.post) {
+        onPostCreated?.(response.post)
+        setContent('')
+        setTags([])
+        toast.success('Post published successfully!')
+      } else {
+        toast.error(response?.error || 'Failed to publish post')
+      }
+    } catch (error) {
+      toast.error(error?.error || error?.message || 'Failed to publish post')
+    } finally {
       setIsSubmitting(false)
-      toast.success('Post published successfully!')
-    }, 1000)
+    }
   }
 
   const addTag = () => {

@@ -2,13 +2,13 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from '../context/AuthContext'
+import { MatchesProvider } from '../context/MatchesContext'
 import { WebSocketProvider } from '../context/WebSocketContext'
 import { PointsProvider } from '../context/PointsContext'
-import { MatchesProvider } from '../context/MatchesContext'
 import ProtectedRoute from './ProtectedRoute'
 import MainLayout from '../components/layout/MainLayout'
 
-// Auth Pages - MUST import them as default
+// Auth Pages
 import Login from '../pages/auth/Login'
 import Register from '../pages/auth/Register'
 
@@ -22,7 +22,7 @@ import Settings from '../pages/settings/Settings'
 import Points from '../pages/points/Points'
 import Notifications from '../pages/notifications/Notifications'
 import Predictions from '../pages/predictions/Predictions'
-import Tournaments from '../pages/tournaments/Tournaments'
+import CoinClash from '../pages/tournaments/CoinClash'
 
 // Default export is required
 const App = () => {
@@ -52,7 +52,7 @@ const App = () => {
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/matches" element={<Matches />} />
                   <Route path="/predictions" element={<Predictions />} />
-                  <Route path="/tournaments" element={<Tournaments />} />
+                  <Route path="/coinclash" element={<CoinClash />} />
                   <Route path="/community" element={<Community />} />
                   <Route path="/stats" element={<Stats />} />
                   <Route path="/points" element={<Points />} />

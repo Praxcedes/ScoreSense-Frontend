@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   TrendingUp, 
@@ -9,147 +9,13 @@ import {
   ChevronRight,
   Eye,
   MessageSquare,
-  Zap,
   Crown
 } from 'lucide-react'
 import { useWebSocket } from '../../hooks/useWebSocket'
 
-const TrendingTopics = () => {
+const TrendingTopics = ({ topics = [], loading = false, onRefresh }) => {
   const { isConnected } = useWebSocket()
   const [activeTab, setActiveTab] = useState('trending')
-  const [topics, setTopics] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  // Default trending topics
-  const defaultTopics = {
-    trending: [
-      {
-        id: 1,
-        title: '#MashemejiDerby',
-        category: 'Football',
-        posts: 245,
-        engagement: 89,
-        trend: 'up',
-        change: 12,
-        hot: true,
-        icon: '🔥'
-      },
-      {
-        id: 2,
-        title: 'Adesanya vs Du Plessis',
-        category: 'MMA',
-        posts: 189,
-        engagement: 76,
-        trend: 'up',
-        change: 8,
-        hot: true,
-        icon: '🥊'
-      },
-      {
-        id: 3,
-        title: 'Man City vs Arsenal',
-        category: 'Premier League',
-        posts: 156,
-        engagement: 65,
-        trend: 'steady',
-        change: 2,
-        hot: false,
-        icon: '⚽'
-      },
-      {
-        id: 4,
-        title: '#KPLPredictions',
-        category: 'Football',
-        posts: 98,
-        engagement: 54,
-        trend: 'up',
-        change: 15,
-        hot: false,
-        icon: '📊'
-      },
-      {
-        id: 5,
-        title: 'NBA Playoffs',
-        category: 'Basketball',
-        posts: 87,
-        engagement: 45,
-        trend: 'down',
-        change: -3,
-        hot: false,
-        icon: '🏀'
-      }
-    ],
-    rising: [
-      {
-        id: 6,
-        title: 'UFC 305 Preview',
-        category: 'MMA',
-        posts: 45,
-        engagement: 92,
-        trend: 'up',
-        change: 28,
-        hot: true,
-        icon: '👊'
-      },
-      {
-        id: 7,
-        title: '#TuskerFC',
-        category: 'Football',
-        posts: 32,
-        engagement: 78,
-        trend: 'up',
-        change: 21,
-        hot: false,
-        icon: '⚽'
-      },
-      {
-        id: 8,
-        title: 'Tennis: Djokovic Form',
-        category: 'Tennis',
-        posts: 28,
-        engagement: 65,
-        trend: 'steady',
-        change: 5,
-        hot: false,
-        icon: '🎾'
-      }
-    ],
-    premium: [
-      {
-        id: 9,
-        title: 'Insider: Transfer Rumors',
-        category: 'Football',
-        posts: 56,
-        engagement: 95,
-        trend: 'up',
-        change: 18,
-        hot: true,
-        premium: true,
-        icon: '🔒'
-      },
-      {
-        id: 10,
-        title: 'Advanced Stats: xG Analysis',
-        category: 'Analytics',
-        posts: 42,
-        engagement: 88,
-        trend: 'steady',
-        change: 7,
-        hot: false,
-        premium: true,
-        icon: '📈'
-      }
-    ]
-  }
-
-  useEffect(() => {
-    // Simulate API fetch
-    setLoading(true)
-    setTimeout(() => {
-      setTopics(defaultTopics[activeTab])
-      setLoading(false)
-    }, 500)
-  }, [activeTab])
 
   const tabs = [
     { id: 'trending', name: 'Trending', icon: <TrendingUp size={16} /> },
@@ -172,6 +38,13 @@ const TrendingTopics = () => {
       default: return '→'
     }
   }
+
+  const filteredTopics = topics.filter((topic) => {
+    if (activeTab === 'premium') {
+      return topic.premium
+    }
+    return true
+  })
 
   return (
     <motion.div
@@ -242,7 +115,7 @@ const TrendingTopics = () => {
             className="space-y-4"
           >
             {/* Topics List */}
-            {topics.map((topic, index) => (
+            {filteredTopics.map((topic, index) => (
               <motion.div
                 key={topic.id}
                 initial={{ opacity: 0, x: -20 }}
@@ -268,10 +141,10 @@ const TrendingTopics = () => {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-bold truncate">{topic.title}</h4>
+                      <h4 className="font-bold truncate">{topic.title || topic.topic}</h4>
                       <div className="flex items-center space-x-2 mt-1">
                         <span className="text-xs px-2 py-0.5 bg-surface rounded-full text-text-secondary">
-                          {topic.category}
+                          {topic.category || 'General'}
                         </span>
                         {topic.premium && (
                           <span className="text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full">
@@ -293,11 +166,11 @@ const TrendingTopics = () => {
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-1">
                       <MessageSquare size={14} />
-                      <span>{topic.posts}</span>
+                      <span>{topic.posts ?? topic.post_count ?? 0}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Eye size={14} />
-                      <span>{topic.engagement}%</span>
+                      <span>{topic.engagement ?? topic.trending_score ?? 0}%</span>
                     </div>
                   </div>
                   <div className="flex items-center space-x-1 group-hover:text-primary transition-colors">
@@ -311,7 +184,7 @@ const TrendingTopics = () => {
                   <div className="w-full bg-surface rounded-full h-1.5">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${topic.engagement}%` }}
+                      animate={{ width: `${topic.engagement ?? topic.trending_score ?? 0}%` }}
                       transition={{ duration: 1, delay: index * 0.2 }}
                       className={`h-1.5 rounded-full ${
                         topic.trend === 'up' ? 'bg-green-500' :
@@ -325,7 +198,7 @@ const TrendingTopics = () => {
             ))}
 
             {/* Empty State */}
-            {topics.length === 0 && (
+            {filteredTopics.length === 0 && (
               <div className="text-center py-8">
                 <Hash className="mx-auto text-text-secondary" size={32} />
                 <p className="text-text-secondary mt-3">No trending topics</p>
@@ -339,40 +212,16 @@ const TrendingTopics = () => {
       </AnimatePresence>
 
       {/* Divider */}
-      <div className="border-t border-card my-6" />
-
-      {/* Quick Stats */}
-      <div className="space-y-4">
-        <h4 className="font-bold flex items-center space-x-2">
-          <Zap size={16} />
-          <span>Community Stats</span>
-        </h4>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="text-center p-3 bg-card rounded-xl">
-            <div className="text-2xl font-bold text-primary">1.2K</div>
-            <div className="text-xs text-text-secondary mt-1">Active Users</div>
-          </div>
-          <div className="text-center p-3 bg-card rounded-xl">
-            <div className="text-2xl font-bold text-green-400">89%</div>
-            <div className="text-xs text-text-secondary mt-1">Accuracy Rate</div>
-          </div>
-          <div className="text-center p-3 bg-card rounded-xl">
-            <div className="text-2xl font-bold text-purple-400">543</div>
-            <div className="text-xs text-text-secondary mt-1">Daily Posts</div>
-          </div>
-          <div className="text-center p-3 bg-card rounded-xl">
-            <div className="text-2xl font-bold text-yellow-400">42</div>
-            <div className="text-xs text-text-secondary mt-1">Top Predictors</div>
-          </div>
-        </div>
-      </div>
-
       {/* Refresh Button */}
-      <button className="w-full mt-6 py-3 bg-surface hover:bg-hover rounded-xl font-medium transition-colors flex items-center justify-center space-x-2">
-        <Clock size={16} />
-        <span>Refresh Topics</span>
-      </button>
+      {onRefresh && (
+        <button
+          onClick={onRefresh}
+          className="w-full mt-6 py-3 bg-surface hover:bg-hover rounded-xl font-medium transition-colors flex items-center justify-center space-x-2"
+        >
+          <Clock size={16} />
+          <span>Refresh Topics</span>
+        </button>
+      )}
 
       {/* Info Footer */}
       <div className="mt-6 pt-4 border-t border-card">

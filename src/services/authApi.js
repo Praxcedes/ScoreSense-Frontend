@@ -1,16 +1,41 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
-// Attach token automatically if present
+// Request interceptor
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  console.log('API Request:', config.method?.toUpperCase(), config.baseURL + config.url);
+  console.log('Request Data:', config.data);
   return config;
+}, (error) => {
+  console.error('Request Error:', error);
+  return Promise.reject(error);
+});
+
+// Response interceptor
+API.interceptors.response.use((response) => {
+  console.log('API Response Success:', response.status, response.config.url);
+  console.log('Response Data:', response.data);
+  return response;
+}, (error) => {
+  console.error('API Response Error Details:');
+  console.error('URL:', error.config?.baseURL + error.config?.url);
+  console.error('Method:', error.config?.method?.toUpperCase());
+  console.error('Status:', error.response?.status);
+  console.error('Status Text:', error.response?.statusText);
+  console.error('Response Data:', error.response?.data);
+  console.error('Error Message:', error.message);
+  
+  return Promise.reject(error);
 });
 
 /* AUTH CALLS */
@@ -24,11 +49,16 @@ export const registerUser = (data) =>
 export const requestPasswordReset = (email) =>
   API.post("/auth/forgot-password", { email });
 
-export const resetPassword = (token, password) =>
-  API.post(`/auth/reset-password/${token}`, { password });
-
 export const verifyEmail = (token) =>
-  API.get(`/auth/verify-email/${token}`);
+  API.post("/auth/verify-email", { token });
 
-export const completeProfile = (data) =>
-  API.put("/users/complete-profile", data);
+export const resendVerificationEmail = (email) =>
+  API.post("/auth/resend-verification", { email });
+
+export const logoutUser = () => {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("user");
+  localStorage.removeItem("walletAddress");
+  localStorage.removeItem("walletConnected");
+  window.location.href = "/login";
+};

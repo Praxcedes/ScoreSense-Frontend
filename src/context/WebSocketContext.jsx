@@ -42,7 +42,9 @@ export const WebSocketProvider = ({ children }) => {
 
   const connectWebSocket = () => {
     const token = localStorage.getItem('scoresense_token')
-    const wsUrl = import.meta.env.VITE_WS_URL || 'wss://api.scoresense.africa'
+    const wsUrl = import.meta.env.DEV
+      ? window.location.origin
+      : (import.meta.env.VITE_WS_URL || 'wss://api.scoresense.africa')
     
     socketRef.current = io(wsUrl, {
       auth: { token },

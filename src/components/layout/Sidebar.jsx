@@ -27,7 +27,7 @@ const Sidebar = () => {
     { path: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { path: '/matches', icon: <Trophy size={20} />, label: 'Matches' },
     { path: '/predictions', icon: <Target size={20} />, label: 'Predictions' },
-    { path: '/tournaments', icon: <Award size={20} />, label: 'Tournaments' },
+    { path: "/coinclash", icon: <Award size={20} />, label: "CoinClash" },
     { path: '/community', icon: <Users size={20} />, label: 'Community' },
     { path: '/stats', icon: <BarChart3 size={20} />, label: 'Stats' },
     { path: '/points', icon: <Wallet size={20} />, label: 'Points' },

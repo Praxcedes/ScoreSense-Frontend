@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
   ThumbsUp, 
@@ -21,24 +21,22 @@ const PostCard = ({ post }) => {
   const [comment, setComment] = useState('')
   const [showComments, setShowComments] = useState(false)
 
-  // Default post data
-  const defaultPost = {
-    id: 1,
-    author: {
-      name: 'Juma_Analytics',
-      avatar: 'JA',
-      premium: true,
-      rank: '#12'
-    },
-    content: 'Gor Mahia\'s away form is shaky, but AFC Leopards missing 3 key defenders makes value on away win. Recent stats suggest 2-1 to Gor. What are your thoughts?',
-    likes: 124,
-    comments: 32,
-    shares: 8,
-    timestamp: '2 hours ago',
-    tags: ['#MashemejiDerby', '#KPL', '#Analysis', '#Prediction']
-  }
+  const postData = post || {}
+  const author = postData.author || postData.user || {}
+  const authorName = author.name || author.username || 'Unknown'
+  const authorAvatar = author.avatar || authorName.charAt(0)
+  const authorPremium = Boolean(author.premium || author.is_premium)
+  const authorRank = author.rank || author.user_rank
+  const timestamp = postData.timestamp || postData.created_at || 'Just now'
+  const tags = postData.tags || []
+  const likesCount = postData.likes ?? postData.likes_count ?? 0
+  const commentsCount = postData.comments ?? postData.comments_count ?? 0
+  const sharesCount = postData.shares ?? postData.shares_count ?? 0
 
-  const postData = post || defaultPost
+  const displayTimestamp = useMemo(() => {
+    if (!timestamp) return 'Just now'
+    return timestamp
+  }, [timestamp])
 
   const handleLike = () => {
     setLiked(!liked)
@@ -80,9 +78,9 @@ const PostCard = ({ post }) => {
           {/* Avatar */}
           <div className="relative">
             <div className="w-12 h-12 bg-gradient-to-br from-primary to-green-400 rounded-full flex items-center justify-center">
-              <span className="font-bold text-white">{postData.author.avatar}</span>
+              <span className="font-bold text-white">{authorAvatar}</span>
             </div>
-            {postData.author.premium && (
+            {authorPremium && (
               <div className="absolute -top-1 -right-1">
                 <Crown className="text-yellow-400" size={16} />
               </div>
@@ -92,15 +90,17 @@ const PostCard = ({ post }) => {
           {/* Author Info */}
           <div>
             <div className="flex items-center space-x-2">
-              <h4 className="font-bold">{postData.author.name}</h4>
-              {postData.author.premium && (
+              <h4 className="font-bold">{authorName}</h4>
+              {authorPremium && (
                 <span className="premium-badge">PREMIUM</span>
               )}
-              <span className="text-sm text-primary font-medium">
-                Rank {postData.author.rank}
-              </span>
+              {authorRank && (
+                <span className="text-sm text-primary font-medium">
+                  Rank {authorRank}
+                </span>
+              )}
             </div>
-            <p className="text-sm text-text-secondary">{postData.timestamp}</p>
+            <p className="text-sm text-text-secondary">{displayTimestamp}</p>
           </div>
         </div>
 
@@ -140,9 +140,9 @@ const PostCard = ({ post }) => {
       </div>
 
       {/* Tags */}
-      {postData.tags && postData.tags.length > 0 && (
+      {tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
-          {postData.tags.map((tag, index) => (
+          {tags.map((tag, index) => (
             <span
               key={index}
               className="px-3 py-1 bg-card text-text-secondary rounded-lg text-sm hover:bg-hover cursor-pointer transition-colors"
@@ -163,7 +163,7 @@ const PostCard = ({ post }) => {
             }`}
           >
             <ThumbsUp size={20} />
-            <span className="font-medium">{postData.likes + (liked ? 1 : 0)}</span>
+            <span className="font-medium">{likesCount + (liked ? 1 : 0)}</span>
           </button>
           
           <button
@@ -171,7 +171,7 @@ const PostCard = ({ post }) => {
             className="flex items-center space-x-2 text-text-secondary hover:text-white"
           >
             <MessageCircle size={20} />
-            <span className="font-medium">{postData.comments}</span>
+            <span className="font-medium">{commentsCount}</span>
           </button>
           
           <button
@@ -179,14 +179,16 @@ const PostCard = ({ post }) => {
             className="flex items-center space-x-2 text-text-secondary hover:text-white"
           >
             <Share2 size={20} />
-            <span className="font-medium">{postData.shares}</span>
+            <span className="font-medium">{sharesCount}</span>
           </button>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <TrendingUp className="text-green-400" size={16} />
-          <span className="text-sm text-green-400">87% accuracy</span>
-        </div>
+        {postData.accuracy && (
+          <div className="flex items-center space-x-2">
+            <TrendingUp className="text-green-400" size={16} />
+            <span className="text-sm text-green-400">{postData.accuracy}% accuracy</span>
+          </div>
+        )}
       </div>
 
       {/* Comment Input */}
@@ -220,24 +222,9 @@ const PostCard = ({ post }) => {
           animate={{ opacity: 1, height: 'auto' }}
           className="mt-4 pt-4 border-t border-card"
         >
-          <h5 className="font-bold mb-3">Recent Comments</h5>
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-start space-x-3 p-3 bg-card rounded-xl">
-                <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                  <span className="text-xs font-bold">U{i}</span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="font-medium">User{i}</span>
-                    <span className="text-xs text-text-secondary">1 hour ago</span>
-                  </div>
-                  <p className="text-sm text-text-secondary mt-1">
-                    Great analysis! I agree with your prediction.
-                  </p>
-                </div>
-              </div>
-            ))}
+          <h5 className="font-bold mb-3">Comments</h5>
+          <div className="text-sm text-text-secondary">
+            Comments are not available yet.
           </div>
         </motion.div>
       )}

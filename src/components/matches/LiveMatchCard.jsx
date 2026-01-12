@@ -43,6 +43,24 @@ const LiveMatchCard = ({ match }) => {
     ]
   }
 
+  const renderTeamBadge = (logo, fallback) => {
+    if (logo) {
+      return (
+        <img
+          src={logo}
+          alt={fallback}
+          className="w-10 h-10 rounded-full object-cover"
+        />
+      )
+    }
+
+    return (
+      <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center">
+        <span className="font-bold">{fallback}</span>
+      </div>
+    )
+  }
+
   useEffect(() => {
     if (!matchData) {
       setMatchData(defaultMatch)
@@ -114,7 +132,10 @@ const LiveMatchCard = ({ match }) => {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
-              <div className="text-4xl font-bold mb-2">{matchData.homeTeam}</div>
+              <div className="flex flex-col items-center gap-2">
+                {renderTeamBadge(matchData.homeLogo, matchData.homeTeam?.charAt(0) || 'H')}
+                <div className="text-4xl font-bold mb-2">{matchData.homeTeam}</div>
+              </div>
               <div className="text-6xl font-bold text-primary">{matchData.homeScore}</div>
             </div>
             
@@ -126,7 +147,10 @@ const LiveMatchCard = ({ match }) => {
             </div>
             
             <div className="text-center flex-1">
-              <div className="text-4xl font-bold mb-2">{matchData.awayTeam}</div>
+              <div className="flex flex-col items-center gap-2">
+                {renderTeamBadge(matchData.awayLogo, matchData.awayTeam?.charAt(0) || 'A')}
+                <div className="text-4xl font-bold mb-2">{matchData.awayTeam}</div>
+              </div>
               <div className="text-6xl font-bold text-primary">{matchData.awayScore}</div>
             </div>
           </div>
