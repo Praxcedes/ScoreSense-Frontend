@@ -4,14 +4,17 @@ import { Trophy, TrendingUp, Users, Award } from 'lucide-react'
 import StatCard from '../../components/common/StatCard'
 import LineChart from '../../components/charts/LineChart'
 import api from '../../services/api'
-import { usePoints } from '../../hooks/usePoints'
+import { useAuth } from '../../hooks/useAuth'
 
 const Dashboard = () => {
-  const { points } = usePoints()
+  const { user } = useAuth()
+  const [points, setPoints] = useState(0)
   const [stats, setStats] = useState([])
   const [chartData, setChartData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const displayName = user?.username || user?.name || user?.email?.split('@')?.[0] || 'Predictor'
 
   useEffect(() => {
     fetchDashboardData()
@@ -22,16 +25,16 @@ const Dashboard = () => {
       setLoading(true)
       setError(null)
 
-      // Fetch dashboard summary - REAL API CALL
       const summaryResponse = await api.get('/dashboard/summary')
-      
+
       if (summaryResponse.success && summaryResponse.summary) {
         const summary = summaryResponse.summary
-        // Update stats with real data from API
+        setPoints(summary.points || 0)
+
         const updatedStats = [
           {
             title: 'Total Points',
-            value: (points || 0).toLocaleString(),
+            value: (summary.points || 0).toLocaleString(),
             change: '+12.5%',
             icon: <Trophy className="text-primary" size={24} />,
             color: 'primary'
@@ -60,13 +63,12 @@ const Dashboard = () => {
         ]
         setStats(updatedStats)
 
-        // Create chart data based on recent activity
         const recentActivity = summary.recent_activity || 0
         const chartLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        const chartValues = Array.from({length: 7}, (_, i) => 
+        const chartValues = Array.from({ length: 7 }, (_, i) =>
           Math.floor(recentActivity / 7 * (i + 1))
         )
-        
+
         const mockChartData = {
           labels: chartLabels,
           datasets: [
@@ -83,19 +85,15 @@ const Dashboard = () => {
       } else {
         throw new Error(summaryResponse.error || 'Failed to load dashboard data')
       }
-
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
-      
-      // Check if it's an authentication error
+
       if (err.response?.status === 401 || err.message?.includes('401')) {
-        // The API interceptor should handle redirect, but just in case
         return
       }
-      
+
       setError('Failed to load dashboard data. Please try again.')
-      
-      // Set default stats on error
+
       setStats([
         {
           title: 'Total Points',
@@ -184,7 +182,6 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -193,7 +190,7 @@ const Dashboard = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">
-              Welcome back, <span className="text-primary">Predictor</span>
+              Welcome <span className="text-primary">{displayName}</span>
             </h1>
             <p className="text-text-secondary mt-2">
               Make smart predictions, climb the leaderboard, and dominate the competition.
@@ -208,7 +205,6 @@ const Dashboard = () => {
         </div>
       </motion.div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <motion.div
@@ -222,7 +218,6 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Performance Chart */}
       {chartData && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -239,7 +234,6 @@ const Dashboard = () => {
         </motion.div>
       )}
 
-      {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="card p-6 text-center">
           <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center mx-auto mb-4">
