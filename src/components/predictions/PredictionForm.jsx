@@ -14,7 +14,7 @@ import { usePoints } from '../../hooks/usePoints'
 import { toast } from 'react-hot-toast'
 
 const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true, defaultStake = 50 }) => {
-  const { points, makePrediction } = usePoints()
+  const { points, makePrediction, walletConnected } = usePoints()
   const [formData, setFormData] = useState({
     match: match ? `${match.homeTeam} vs ${match.awayTeam}` : '',
     matchId: match?.id || null,
@@ -72,6 +72,10 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    if (!walletConnected) {
+      toast.error('Connect your wallet to place predictions')
+      return
+    }
     if (formData.stake > points) {
       toast.error('Insufficient points')
       return

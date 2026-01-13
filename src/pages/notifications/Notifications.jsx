@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Bell,
@@ -20,108 +20,153 @@ import {
   Zap
 } from 'lucide-react'
 import { useWebSocket } from '../../hooks/useWebSocket'
+import { notificationsService } from '../../services/notifications.service'
+import { toast } from 'react-hot-toast'
 
 const Notifications = () => {
   const { notifications: wsNotifications } = useWebSocket()
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'prediction_result',
-      title: 'Prediction Won!',
-      message: 'Your prediction on Gor Mahia vs AFC Leopards was correct!',
-      points: 120,
-      read: false,
-      timestamp: 'Just now',
-      icon: <Trophy className="text-yellow-400" />,
-      color: 'yellow'
-    },
-    {
-      id: 2,
-      type: 'match_start',
-      title: 'Match Started',
-      message: 'Manchester City vs Arsenal has started. Live updates available.',
-      read: false,
-      timestamp: '5 minutes ago',
-      icon: <Zap className="text-green-400" />,
-      color: 'green'
-    },
-    {
-      id: 3,
-      type: 'community',
-      title: 'New Follower',
-      message: 'PredictorPro started following you. Check out their predictions.',
-      read: true,
-      timestamp: '1 hour ago',
-      icon: <Users className="text-blue-400" />,
-      color: 'blue'
-    },
-    {
-      id: 4,
-      type: 'points',
-      title: 'Daily Bonus',
-      message: 'You received 50 points for your daily login streak.',
-      points: 50,
-      read: true,
-      timestamp: '2 hours ago',
-      icon: <Gift className="text-purple-400" />,
-      color: 'purple'
-    },
-    {
-      id: 5,
-      type: 'achievement',
-      title: 'Achievement Unlocked',
-      message: 'You earned the "Perfect Week" achievement!',
-      read: true,
-      timestamp: '1 day ago',
-      icon: <Star className="text-orange-400" />,
-      color: 'orange'
-    },
-    {
-      id: 6,
-      type: 'system',
-      title: 'System Update',
-      message: 'New prediction features available. Check them out!',
-      read: true,
-      timestamp: '2 days ago',
-      icon: <Shield className="text-gray-400" />,
-      color: 'gray'
-    }
-  ])
+  const [notifications, setNotifications] = useState([])
+  const [settings, setSettings] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [settingsSaving, setSettingsSaving] = useState(false)
 
   const [filter, setFilter] = useState('all')
   const [showSettings, setShowSettings] = useState(false)
 
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setLoading(true)
+        const response = await notificationsService.getNotifications({ page: 1, per_page: 20 })
+        setNotifications(response.notifications || [])
+      } catch (error) {
+        toast.error(error?.error || 'Failed to load notifications')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    const fetchSettings = async () => {
+      try {
+        const response = await notificationsService.getSettings()
+        setSettings(response.settings || null)
+      } catch (error) {
+        console.warn('Failed to load notification settings:', error)
+      }
+    }
+
+    fetchNotifications()
+    fetchSettings()
+  }, [])
+
+  const mappedNotifications = useMemo(() => {
+    return notifications.map((notification) => {
+      const type = notification.type || 'system'
+      const createdAt = notification.created_at
+        ? new Date(notification.created_at).toLocaleString()
+        : 'Just now'
+      if (type === 'prediction_result') {
+        return { ...notification, icon: <Trophy className="text-yellow-400" />, color: 'yellow', timestamp: createdAt }
+      }
+      if (type === 'match_start') {
+        return { ...notification, icon: <Zap className="text-green-400" />, color: 'green', timestamp: createdAt }
+      }
+      if (type === 'community') {
+        return { ...notification, icon: <Users className="text-blue-400" />, color: 'blue', timestamp: createdAt }
+      }
+      if (type === 'points') {
+        return { ...notification, icon: <Gift className="text-purple-400" />, color: 'purple', timestamp: createdAt }
+      }
+      if (type === 'achievement') {
+        return { ...notification, icon: <Star className="text-orange-400" />, color: 'orange', timestamp: createdAt }
+      }
+      return { ...notification, icon: <Shield className="text-gray-400" />, color: 'gray', timestamp: createdAt }
+    })
+  }, [notifications])
+
+  const mergedLiveNotifications = useMemo(() => {
+    if (!wsNotifications || wsNotifications.length === 0) {
+      return mappedNotifications
+    }
+    const liveItems = wsNotifications.map((notification) => ({
+      ...notification,
+      id: notification.id || `live-${notification.message}`,
+      type: notification.type || 'system',
+      title: notification.title || 'Live Update',
+      read: false,
+      created_at: notification.created_at || new Date().toISOString(),
+      points: notification.points || 0,
+      message: notification.message || '',
+    }))
+    return [...liveItems, ...mappedNotifications]
+  }, [wsNotifications, mappedNotifications])
+
   const notificationTypes = [
-    { id: 'all', name: 'All', count: notifications.length },
-    { id: 'unread', name: 'Unread', count: notifications.filter(n => !n.read).length },
+    { id: 'all', name: 'All', count: mergedLiveNotifications.length },
+    { id: 'unread', name: 'Unread', count: mergedLiveNotifications.filter(n => !n.read).length },
     { id: 'prediction', name: 'Predictions', icon: <Trophy size={16} /> },
     { id: 'match', name: 'Matches', icon: <Zap size={16} /> },
     { id: 'community', name: 'Community', icon: <Users size={16} /> },
     { id: 'points', name: 'Points', icon: <Gift size={16} /> }
   ]
 
-  const filteredNotifications = notifications.filter(notification => {
+  const filteredNotifications = mergedLiveNotifications.filter(notification => {
     if (filter === 'all') return true
     if (filter === 'unread') return !notification.read
     return notification.type.includes(filter)
   })
 
-  const markAsRead = (id) => {
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, read: true } : n))
-    )
+  const markAsRead = async (id) => {
+    try {
+      await notificationsService.markRead(id)
+      setNotifications(prev =>
+        prev.map(n => (n.id === id ? { ...n, read: true } : n))
+      )
+    } catch (error) {
+      toast.error(error?.error || 'Failed to mark as read')
+    }
   }
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+  const markAllAsRead = async () => {
+    try {
+      await notificationsService.markAllRead()
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    } catch (error) {
+      toast.error(error?.error || 'Failed to mark all as read')
+    }
   }
 
-  const deleteNotification = (id) => {
-    setNotifications(prev => prev.filter(n => n.id !== id))
+  const deleteNotification = async (id) => {
+    try {
+      await notificationsService.deleteNotification(id)
+      setNotifications(prev => prev.filter(n => n.id !== id))
+    } catch (error) {
+      toast.error(error?.error || 'Failed to delete notification')
+    }
   }
 
-  const clearAll = () => {
-    setNotifications([])
+  const clearAll = async () => {
+    try {
+      await notificationsService.clearAll()
+      setNotifications([])
+    } catch (error) {
+      toast.error(error?.error || 'Failed to clear notifications')
+    }
+  }
+
+  const toggleSetting = async (key) => {
+    if (!settings) return
+    const updated = { ...settings, [key]: !settings[key] }
+    try {
+      setSettingsSaving(true)
+      const response = await notificationsService.updateSettings(updated)
+      setSettings(response.settings || updated)
+      toast.success('Settings updated')
+    } catch (error) {
+      toast.error(error?.error || 'Failed to update settings')
+    } finally {
+      setSettingsSaving(false)
+    }
   }
 
   return (
@@ -161,19 +206,33 @@ const Notifications = () => {
             className="card p-6 overflow-hidden"
           >
             <h3 className="font-bold mb-4">Notification Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {['prediction_results', 'match_updates', 'community_activity', 'points_updates', 'marketing'].map((type) => (
-                <div key={type} className="flex items-center justify-between p-3 bg-card rounded-xl">
-                  <div>
-                    <p className="font-medium">{type.split('_').join(' ').toUpperCase()}</p>
-                    <p className="text-sm text-text-secondary">Receive {type} notifications</p>
+            {!settings ? (
+              <div className="text-sm text-text-secondary">Settings unavailable.</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {['prediction_results', 'match_updates', 'community_activity', 'points_updates', 'marketing', 'email_enabled'].map((type) => (
+                  <div key={type} className="flex items-center justify-between p-3 bg-card rounded-xl">
+                    <div>
+                      <p className="font-medium">{type.split('_').join(' ').toUpperCase()}</p>
+                      <p className="text-sm text-text-secondary">Receive {type} notifications</p>
+                    </div>
+                    <button
+                      onClick={() => toggleSetting(type)}
+                      disabled={settingsSaving}
+                      className={`w-12 h-6 rounded-full relative transition ${
+                        settings[type] ? 'bg-primary' : 'bg-surface'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition ${
+                          settings[type] ? 'left-6' : 'left-0.5'
+                        }`}
+                      ></div>
+                    </button>
                   </div>
-                  <button className="w-12 h-6 bg-primary rounded-full relative">
-                    <div className="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5"></div>
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -207,6 +266,16 @@ const Notifications = () => {
 
       {/* Notifications List */}
       <div className="space-y-3">
+        {loading && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="card p-8 text-center"
+          >
+            <Bell className="mx-auto text-text-secondary" size={32} />
+            <p className="text-text-secondary mt-3">Loading notifications...</p>
+          </motion.div>
+        )}
         {filteredNotifications.length > 0 ? (
           filteredNotifications.map((notification, index) => (
             <motion.div
@@ -315,18 +384,18 @@ const Notifications = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
         <div className="card p-4 text-center">
-          <div className="text-2xl font-bold">{notifications.filter(n => !n.read).length}</div>
+          <div className="text-2xl font-bold">{mergedLiveNotifications.filter(n => !n.read).length}</div>
           <div className="text-sm text-text-secondary">Unread</div>
         </div>
         <div className="card p-4 text-center">
           <div className="text-2xl font-bold text-green-400">
-            {notifications.filter(n => n.type === 'prediction_result').length}
+            {mergedLiveNotifications.filter(n => n.type === 'prediction_result').length}
           </div>
           <div className="text-sm text-text-secondary">Wins</div>
         </div>
         <div className="card p-4 text-center">
           <div className="text-2xl font-bold">
-            {notifications.reduce((sum, n) => sum + (n.points || 0), 0)}
+            {mergedLiveNotifications.reduce((sum, n) => sum + (n.points || 0), 0)}
           </div>
           <div className="text-sm text-text-secondary">Points Earned</div>
         </div>

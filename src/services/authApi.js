@@ -43,6 +43,9 @@ API.interceptors.response.use((response) => {
 export const loginUser = (data) =>
   API.post("/auth/login", data);
 
+export const loginAdminUser = (data) =>
+  API.post("/auth/admin/login", data);
+
 export const registerUser = (data) =>
   API.post("/auth/register", data);
 

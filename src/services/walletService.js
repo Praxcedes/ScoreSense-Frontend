@@ -42,13 +42,13 @@ class WalletService {
         method: 'eth_requestAccounts'
       });
 
-      // Import ethers dynamically
+      // Import ethers dynamically (v6 compatible)
       const ethersModule = await import('ethers');
-      const ethers = ethersModule.default || ethersModule;
+      const { BrowserProvider } = ethersModule;
       
       // Create ethers provider and signer
-      this.provider = new ethers.providers.Web3Provider(window.ethereum);
-      this.signer = this.provider.getSigner();
+      this.provider = new BrowserProvider(window.ethereum);
+      this.signer = await this.provider.getSigner();
       this.walletAddress = await this.signer.getAddress();
       
       // Get chain ID
@@ -151,9 +151,8 @@ class WalletService {
 
     try {
       const balance = await this.provider.getBalance(this.walletAddress);
-      // Get ethers from provider
-      const ethers = this.provider.provider.ethers || (await import('ethers')).default;
-      return ethers.utils.formatEther(balance);
+      const ethersModule = await import('ethers');
+      return ethersModule.formatEther(balance);
     } catch (error) {
       console.error('Balance check error:', error);
       throw error;

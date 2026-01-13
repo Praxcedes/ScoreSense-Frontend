@@ -26,6 +26,7 @@ import * as ethers from 'ethers'
 import { useWeb3 } from '../../hooks/useWeb3'
 import { getContractCode, getCoinClashAddress, getPointsTokenId } from '../../services/blockchain'
 import CoinClashAnimation from '../../components/CoinClashAnimation'
+import { toast } from 'react-hot-toast'
 
 const CoinClash = () => {
   const [activeTab, setActiveTab] = useState('available')
@@ -37,6 +38,9 @@ const CoinClash = () => {
   const [isApproved, setIsApproved] = useState(false)
   const [showLiveModal, setShowLiveModal] = useState(false)
   const [liveSession, setLiveSession] = useState(null)
+  const [liveMode, setLiveMode] = useState('play')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createEntry, setCreateEntry] = useState(100)
   const { address, contract, readContract, pointsContract, pointsReadContract, connectWallet, ensureNetwork, connecting } = useWeb3()
 
   const tabs = [
@@ -191,16 +195,22 @@ const CoinClash = () => {
     }
   }
 
-  const joinSession = async (sessionId) => {
+  const joinSession = (sessionId) => {
+    const session = sessions.find(item => item.id === sessionId)
+    if (!session) {
+      toast.error('Session not found')
+      return
+    }
+    setLiveSession(session)
+    setLiveMode('join')
+    setShowLiveModal(true)
+  }
+
+  const confirmJoin = async (sessionId, choice) => {
     try {
       await ensureWalletReady()
       if (!contract) {
         throw new Error('Wallet not connected')
-      }
-
-      const session = sessions.find(item => item.id === sessionId)
-      if (!session) {
-        throw new Error('Session not found')
       }
 
       if (!pointsContract) {
@@ -211,18 +221,13 @@ const CoinClash = () => {
         throw new Error('Approve points before joining a tournament')
       }
 
-      const choiceInput = window.prompt('Choose heads or tails:', 'heads')
-      if (!choiceInput) {
-        return
-      }
-
-      const choice = choiceInput.toLowerCase() === 'tails' ? 1 : 0
       const tx = await contract.joinTournament(sessionId, choice)
       await tx.wait()
       await fetchCoinClashSessions()
-      alert('Joined session successfully!')
+      setLiveMode('play')
+      toast.success('Joined session successfully!')
     } catch (err) {
-      alert(err.message || 'Error joining session. Please try again.')
+      toast.error(err.message || 'Error joining session. Please try again.')
     }
   }
 
@@ -235,42 +240,46 @@ const CoinClash = () => {
       const tx = await pointsContract.setApprovalForAll(getCoinClashAddress(), true)
       await tx.wait()
       setIsApproved(true)
-      alert('Points approval successful!')
+      toast.success('Points approval successful!')
     } catch (err) {
-      alert(err.message || 'Failed to approve points.')
+      toast.error(err.message || 'Failed to approve points.')
     }
   }
 
-  const openLiveModal = (session) => {
+  const openLiveModal = (session, mode = 'play') => {
     setLiveSession(session)
+    setLiveMode(mode)
     setShowLiveModal(true)
   }
 
   const closeLiveModal = () => {
     setShowLiveModal(false)
     setLiveSession(null)
+    setLiveMode('play')
   }
 
-  const createSession = async () => {
-    const entryPoints = prompt('Enter entry points (100, 300, 500):', '100')
-    
-    if (!entryPoints) return
-    
+  const createSession = () => {
+    setCreateEntry(100)
+    setShowCreateModal(true)
+  }
+
+  const confirmCreateSession = async () => {
     try {
       await ensureWalletReady()
       if (!contract) {
         throw new Error('Wallet not connected')
       }
 
-      const entry = parseInt(entryPoints, 10)
+      const entry = parseInt(createEntry, 10)
       const tier = entry === 300 ? 1 : entry === 500 ? 2 : 0
 
       const tx = await contract.createTournament(tier)
       await tx.wait()
       await fetchCoinClashSessions()
-      alert('Tournament created successfully!')
+      setShowCreateModal(false)
+      toast.success('Tournament created successfully!')
     } catch (err) {
-      alert(err.message || 'Error creating session. Please try again.')
+      toast.error(err.message || 'Error creating session. Please try again.')
     }
   }
 
@@ -283,9 +292,9 @@ const CoinClash = () => {
       const tx = await contract.submitChoice(sessionId, choice)
       await tx.wait()
       await fetchCoinClashSessions()
-      alert('Choice submitted!')
+      toast.success('Choice submitted!')
     } catch (err) {
-      alert(err.message || 'Failed to submit choice.')
+      toast.error(err.message || 'Failed to submit choice.')
     }
   }
 
@@ -298,9 +307,9 @@ const CoinClash = () => {
       const tx = await contract.resolveRound(sessionId)
       await tx.wait()
       await fetchCoinClashSessions()
-      alert('Round resolved!')
+      toast.success('Round resolved!')
     } catch (err) {
-      alert(err.message || 'Failed to resolve round.')
+      toast.error(err.message || 'Failed to resolve round.')
     }
   }
 
@@ -483,6 +492,11 @@ const CoinClash = () => {
                     <div className="font-bold text-lg">{session.total_pot} PTS</div>
                   </div>
                 </div>
+                {session.status === 'WAITING' && (
+                  <div className="text-xs text-text-secondary uppercase tracking-widest">
+                    Auto-starts after 5 min if 2+ players join
+                  </div>
+                )}
 
                 <button
                   onClick={() => joinSession(session.id)}
@@ -525,7 +539,7 @@ const CoinClash = () => {
 
                 {session.status === 'ACTIVE' && (
                   <button
-                    onClick={() => openLiveModal(session)}
+                    onClick={() => openLiveModal(session, 'play')}
                     className="w-full mt-3 py-2 rounded-lg bg-surface text-sm font-semibold hover:bg-hover transition"
                   >
                     View Live
@@ -559,27 +573,94 @@ const CoinClash = () => {
             </div>
             <div className="py-6 flex flex-col items-center gap-8">
               <CoinClashAnimation status={liveSession.status} />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => submitChoice(liveSession.id, 0)}
-                  className="px-4 py-2 rounded-lg bg-card border border-card text-sm hover:bg-hover transition"
-                >
-                  Heads
-                </button>
-                <button
-                  onClick={() => submitChoice(liveSession.id, 1)}
-                  className="px-4 py-2 rounded-lg bg-card border border-card text-sm hover:bg-hover transition"
-                >
-                  Tails
-                </button>
-                <button
-                  onClick={() => resolveRound(liveSession.id)}
-                  className="px-4 py-2 rounded-lg bg-primary text-black text-sm hover:opacity-90 transition"
-                >
-                  Resolve
-                </button>
-              </div>
+              {liveMode === 'join' ? (
+                <div className="text-center space-y-4">
+                  <p className="text-sm text-text-secondary">
+                    Choose your side to join this tournament.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={() => confirmJoin(liveSession.id, 0)}
+                      className="px-4 py-2 rounded-lg bg-card border border-card text-sm hover:bg-hover transition"
+                    >
+                      Heads
+                    </button>
+                    <button
+                      onClick={() => confirmJoin(liveSession.id, 1)}
+                      className="px-4 py-2 rounded-lg bg-card border border-card text-sm hover:bg-hover transition"
+                    >
+                      Tails
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => submitChoice(liveSession.id, 0)}
+                    className="px-4 py-2 rounded-lg bg-card border border-card text-sm hover:bg-hover transition"
+                  >
+                    Heads
+                  </button>
+                  <button
+                    onClick={() => submitChoice(liveSession.id, 1)}
+                    className="px-4 py-2 rounded-lg bg-card border border-card text-sm hover:bg-hover transition"
+                  >
+                    Tails
+                  </button>
+                  <button
+                    onClick={() => resolveRound(liveSession.id)}
+                    className="px-4 py-2 rounded-lg bg-primary text-black text-sm hover:opacity-90 transition"
+                  >
+                    Resolve
+                  </button>
+                </div>
+              )}
+              {liveSession.status === 'WAITING' && (
+                <div className="text-xs text-text-secondary uppercase tracking-widest">
+                  Auto-starts after 5 min if 2+ players join
+                </div>
+              )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md bg-card border border-card rounded-2xl p-6 relative">
+            <button
+              onClick={() => setShowCreateModal(false)}
+              className="absolute right-4 top-4 text-text-secondary hover:text-white transition"
+            >
+              ×
+            </button>
+            <div className="mb-6">
+              <h3 className="text-xl font-bold">Create CoinClash Game</h3>
+              <p className="text-text-secondary text-sm mt-1">
+                Choose an entry tier to start a new tournament.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {[100, 300, 500].map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => setCreateEntry(amount)}
+                  className={`py-3 rounded-xl font-semibold transition ${
+                    createEntry === amount
+                      ? 'bg-primary text-black'
+                      : 'bg-card border border-card text-text-secondary hover:bg-hover'
+                  }`}
+                >
+                  {amount} PTS
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={confirmCreateSession}
+              className="w-full py-3 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold hover:opacity-90 transition"
+            >
+              Create Game
+            </button>
           </div>
         </div>
       )}

@@ -44,7 +44,9 @@ export const PointsProvider = ({ children }) => {
       if (isWalletConnected) {
         const address = walletService.getAddress()
         setWalletAddress(address)
-        await fetchBlockchainBalances(address)
+        if (address) {
+          await fetchBlockchainBalances(address)
+        }
       }
 
       // Fetch traditional points data
@@ -142,6 +144,8 @@ export const PointsProvider = ({ children }) => {
 
   const fetchBlockchainBalances = async (address) => {
     if (!address) return
+    const token = localStorage.getItem('accessToken')
+    if (!token) return
     
     try {
       // Get blockchain balances from backend

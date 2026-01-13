@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { loginUser, registerUser } from '../services/authApi'
+import { loginUser, loginAdminUser, registerUser } from '../services/authApi'
 import { toast } from 'react-hot-toast'
 
 export const AuthContext = createContext()
@@ -85,6 +85,36 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const loginAdmin = async (email, password, adminSecret) => {
+    try {
+      setLoading(true)
+      const response = await loginAdminUser({
+        email,
+        password,
+        admin_secret: adminSecret
+      })
+
+      if (response.data?.access_token) {
+        const token = response.data.access_token
+        const userData = response.data.user || { email, name: email.split('@')[0], role: 'admin' }
+
+        localStorage.setItem('accessToken', token)
+        localStorage.setItem('user', JSON.stringify(userData))
+
+        setUser(userData)
+        toast.success('Admin login successful')
+        return { success: true, user: userData }
+      }
+      throw new Error('Invalid response from server')
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.message || 'Admin login failed'
+      toast.error(errorMessage)
+      return { success: false, error: errorMessage }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const logout = () => {
     localStorage.removeItem('accessToken')
     localStorage.removeItem('user')
@@ -96,6 +126,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     login,
+    loginAdmin,
     register,
     logout
   }

@@ -4,9 +4,10 @@ import { Trophy, TrendingUp, Users, Award } from 'lucide-react'
 import StatCard from '../../components/common/StatCard'
 import LineChart from '../../components/charts/LineChart'
 import api from '../../services/api'
+import { usePoints } from '../../hooks/usePoints'
 
 const Dashboard = () => {
-  const [points, setPoints] = useState(0)
+  const { points } = usePoints()
   const [stats, setStats] = useState([])
   const [chartData, setChartData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -26,13 +27,11 @@ const Dashboard = () => {
       
       if (summaryResponse.success && summaryResponse.summary) {
         const summary = summaryResponse.summary
-        setPoints(summary.points || 0)
-
         // Update stats with real data from API
         const updatedStats = [
           {
             title: 'Total Points',
-            value: (summary.points || 0).toLocaleString(),
+            value: (points || 0).toLocaleString(),
             change: '+12.5%',
             icon: <Trophy className="text-primary" size={24} />,
             color: 'primary'

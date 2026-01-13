@@ -2,23 +2,26 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowUpRight, Gift, TrendingUp, History, CreditCard, Plus, Wallet, ExternalLink, Copy, Check } from 'lucide-react'
 import { usePoints } from '../../hooks/usePoints'
-import walletService from '../../services/walletService'
+import { pointsService } from '../../services/points.service'
 import { toast } from 'react-hot-toast'
 
 const Points = () => {
-  const { 
-    points, 
-    celoBalance, 
-    transactions, 
-    walletConnected, 
+  const {
+    points,
+    celoBalance,
+    transactions,
+    leaderboard,
+    walletConnected,
     walletAddress,
     connectWallet,
-    fetchBlockchainBalances 
+    fetchBlockchainBalances
   } = usePoints()
-  
+
   const [activeTab, setActiveTab] = useState('transactions')
   const [walletLoading, setWalletLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [rewards, setRewards] = useState([])
+  const [rewardsLoading, setRewardsLoading] = useState(false)
 
   useEffect(() => {
     // Refresh blockchain balances periodically
@@ -31,28 +34,28 @@ const Points = () => {
     return () => clearInterval(interval)
   }, [walletConnected, walletAddress, fetchBlockchainBalances])
 
+  useEffect(() => {
+    const fetchRewards = async () => {
+      try {
+        setRewardsLoading(true)
+        const response = await pointsService.getRewards()
+        setRewards(response.rewards || [])
+      } catch (error) {
+        console.error('Failed to load rewards:', error)
+      } finally {
+        setRewardsLoading(false)
+      }
+    }
+
+    fetchRewards()
+  }, [])
+
   const tabs = [
     { id: 'transactions', name: 'Transactions' },
     { id: 'rewards', name: 'Rewards' },
     { id: 'leaderboard', name: 'Leaderboard' },
     { id: 'blockchain', name: 'Blockchain' }
   ]
-
-  const rewards = [
-    { id: 1, name: 'Daily Login', amount: 50, claimed: true },
-    { id: 2, name: 'Win Streak', amount: 100, claimed: false },
-    { id: 3, name: 'Perfect Week', amount: 200, claimed: false },
-    { id: 4, name: 'Community', amount: 75, claimed: true }
-  ]
-
-  // Mock transactions - will be replaced with real data
-  const mockTransactions = [
-    { id: 1, description: 'Prediction Win', category: 'Gor Mahia vs AFC', amount: 120, type: 'win', date: 'Today' },
-    { id: 2, description: 'Daily Bonus', category: 'Login Streak', amount: 50, type: 'bonus', date: 'Today' },
-    { id: 3, description: 'Marketplace Purchase', category: 'Premium Badge', amount: -100, type: 'purchase', date: 'Yesterday' }
-  ]
-
-  const displayTransactions = transactions.length > 0 ? transactions : mockTransactions
 
   const handleConnectWallet = async () => {
     setWalletLoading(true)
@@ -82,6 +85,32 @@ const Points = () => {
   const openExplorer = () => {
     if (!walletAddress) return
     window.open(`https://celo-sepolia.blockscout.com/address/${walletAddress}`, '_blank')
+  }
+
+  const handleRedeem = async (reward) => {
+    try {
+      const response = await pointsService.redeemReward(reward.id)
+      if (response?.success) {
+        toast.success(response.message || 'Reward redeemed!')
+      } else {
+        toast.error(response?.error || 'Failed to redeem reward')
+      }
+    } catch (error) {
+      toast.error(error?.error || 'Failed to redeem reward')
+    }
+  }
+
+  const handleClaim = async (reward) => {
+    try {
+      const response = await pointsService.claimReward(reward.id)
+      if (response?.success) {
+        toast.success(response.message || 'Bonus claimed!')
+      } else {
+        toast.error(response?.error || 'Failed to claim bonus')
+      }
+    } catch (error) {
+      toast.error(error?.error || 'Failed to claim bonus')
+    }
   }
 
   return (
@@ -219,42 +248,62 @@ const Points = () => {
         {/* Transactions Tab */}
         {activeTab === 'transactions' && (
           <div className="space-y-4">
-            {displayTransactions.map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between p-4 bg-card rounded-xl">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${
-                    tx.type === 'win' ? 'bg-green-500/20' :
-                    tx.type === 'bonus' ? 'bg-yellow-500/20' :
-                    'bg-blue-500/20'
-                  }`}>
-                    {tx.type === 'win' ? <ArrowUpRight className="text-green-400" size={16} /> :
-                     tx.type === 'bonus' ? <Gift className="text-yellow-400" size={16} /> :
-                     <CreditCard className="text-blue-400" size={16} />}
-                  </div>
-                  <div>
-                    <p className="font-medium">{tx.description}</p>
-                    <p className="text-sm text-text-secondary">{tx.category}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className={`font-bold ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {tx.amount > 0 ? '+' : ''}{tx.amount} PTS
-                  </p>
-                  <p className="text-sm text-text-secondary">{tx.date}</p>
-                </div>
+            {transactions.length === 0 ? (
+              <div className="text-center py-10 text-text-secondary">
+                No transactions yet.
               </div>
-            ))}
+            ) : (
+              transactions.map((tx) => (
+                <div key={tx.id} className="flex items-center justify-between p-4 bg-card rounded-xl">
+                  <div className="flex items-center space-x-3">
+                    <div className={`p-2 rounded-lg ${
+                      tx.transaction_type?.includes('earned') || tx.amount > 0 ? 'bg-green-500/20' :
+                      tx.transaction_type?.includes('bonus') ? 'bg-yellow-500/20' :
+                      'bg-blue-500/20'
+                    }`}>
+                      {tx.amount > 0 ? (
+                        <ArrowUpRight className="text-green-400" size={16} />
+                      ) : (
+                        <CreditCard className="text-blue-400" size={16} />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium">{tx.description || tx.transaction_type}</p>
+                      <p className="text-sm text-text-secondary">{tx.reference_id || 'Transaction'}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`font-bold ${tx.amount > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {tx.amount > 0 ? '+' : ''}{tx.amount} PTS
+                    </p>
+                    <p className="text-sm text-text-secondary">
+                      {tx.created_at ? new Date(tx.created_at).toLocaleDateString() : '—'}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
 
         {/* Rewards Tab */}
         {activeTab === 'rewards' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {rewardsLoading && (
+              <div className="text-center py-10 text-text-secondary col-span-full">
+                Loading rewards...
+              </div>
+            )}
+            {!rewardsLoading && rewards.length === 0 && (
+              <div className="text-center py-10 text-text-secondary col-span-full">
+                No rewards available yet.
+              </div>
+            )}
             {rewards.map((reward) => (
               <div
                 key={reward.id}
                 className={`p-4 rounded-xl border ${
-                  reward.claimed
+                  reward.available === false
                     ? 'bg-green-500/10 border-green-500/30'
                     : 'bg-card border-card'
                 }`}
@@ -262,17 +311,32 @@ const Points = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-medium">{reward.name}</h4>
-                    <p className="text-sm text-text-secondary">{reward.amount} PTS</p>
+                    <p className="text-sm text-text-secondary">
+                      {reward.points_award ? `+${reward.points_award} PTS` : `${reward.points_cost} PTS`}
+                    </p>
+                    {reward.meta && reward.meta.current_streak && (
+                      <p className="text-xs text-text-secondary mt-1">
+                        Current streak: {reward.meta.current_streak}
+                      </p>
+                    )}
+                    {reward.meta && reward.meta.activity_score !== undefined && (
+                      <p className="text-xs text-text-secondary mt-1">
+                        Activity score: {reward.meta.activity_score}
+                      </p>
+                    )}
                   </div>
                   <button
                     className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                      reward.claimed
+                      reward.available === false || reward.claimable === false
                         ? 'bg-green-500/20 text-green-400'
                         : 'bg-primary text-white hover:bg-primary/90'
                     }`}
-                    disabled={reward.claimed}
+                    onClick={() =>
+                      reward.points_cost > 0 ? handleRedeem(reward) : handleClaim(reward)
+                    }
+                    disabled={reward.available === false || reward.claimable === false}
                   >
-                    {reward.claimed ? 'Claimed' : 'Claim'}
+                    {reward.points_cost > 0 ? 'Redeem' : 'Claim'}
                   </button>
                 </div>
               </div>
@@ -283,32 +347,33 @@ const Points = () => {
         {/* Leaderboard Tab */}
         {activeTab === 'leaderboard' && (
           <div className="space-y-4">
-            {[
-              { rank: 1, name: 'PredictorPro', points: 12450, change: '+2' },
-              { rank: 2, name: 'JumaAnalytics', points: 11200, change: '+1' },
-              { rank: 3, name: 'SportsWizard', points: 9850, change: '+3' },
-              { rank: 6, name: 'You', points: points || 2450, change: '+5' }
-            ].map((user) => (
-              <div key={user.rank} className="flex items-center justify-between p-4 bg-card rounded-xl">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                    user.rank === 1 ? 'bg-yellow-500/20 text-yellow-400' :
-                    user.rank === 2 ? 'bg-gray-500/20 text-gray-400' :
-                    user.rank === 3 ? 'bg-orange-500/20 text-orange-400' :
-                    'bg-primary/20 text-primary'
-                  }`}>
-                    #{user.rank}
-                  </div>
-                  <div>
-                    <p className="font-medium">{user.name}</p>
-                    <p className="text-sm text-text-secondary">{user.points.toLocaleString()} PTS</p>
-                  </div>
-                </div>
-                <div className={`text-sm font-medium ${user.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {user.change >= 0 ? '↑' : '↓'} {Math.abs(user.change)}
-                </div>
+            {leaderboard.length === 0 ? (
+              <div className="text-center py-10 text-text-secondary">
+                No leaderboard data yet.
               </div>
-            ))}
+            ) : (
+              leaderboard.map((user) => (
+                <div key={user.user_id || user.rank} className="flex items-center justify-between p-4 bg-card rounded-xl">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                      user.rank === 1 ? 'bg-yellow-500/20 text-yellow-400' :
+                      user.rank === 2 ? 'bg-gray-500/20 text-gray-400' :
+                      user.rank === 3 ? 'bg-orange-500/20 text-orange-400' :
+                      'bg-primary/20 text-primary'
+                    }`}>
+                      #{user.rank}
+                    </div>
+                    <div>
+                      <p className="font-medium">{user.username || 'User'}</p>
+                      <p className="text-sm text-text-secondary">{(user.points || 0).toLocaleString()} PTS</p>
+                    </div>
+                  </div>
+                  <div className="text-sm font-medium text-text-secondary">
+                    Level {user.level || 1}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
 

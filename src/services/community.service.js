@@ -1,16 +1,24 @@
-import api from './api'
+import axios from 'axios'
 
-const tryPaths = async (paths, requestFn, isValid) => {
-  let lastResponse = null
-  for (const path of paths) {
-    const response = await requestFn(path)
-    lastResponse = response
-    if (isValid(response)) {
-      return response
-    }
+const COMMUNITY_API = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://scoresense-africa-backend.onrender.com',
+  headers: {
+    'Content-Type': 'application/json'
   }
-  return lastResponse
-}
+})
+
+COMMUNITY_API.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+COMMUNITY_API.interceptors.response.use(
+  (response) => response.data,
+  (error) => Promise.reject(error.response?.data || error)
+)
 
 export const communityService = {
   async getPosts({ page = 1, perPage = 20, userId = null } = {}) {
@@ -18,11 +26,7 @@ export const communityService = {
     if (userId) {
       params.user_id = userId
     }
-    return tryPaths(
-      ['/community/posts', '/posts'],
-      (path) => api.get(path, { params }),
-      (response) => Array.isArray(response?.posts)
-    )
+    return COMMUNITY_API.get('/api/community/posts', { params })
   },
 
   async createPost({ content, mediaUrl = null, postType = 'text' }) {
@@ -31,26 +35,14 @@ export const communityService = {
       media_url: mediaUrl,
       post_type: postType
     }
-    return tryPaths(
-      ['/community/posts', '/posts'],
-      (path) => api.post(path, payload),
-      (response) => Boolean(response?.post)
-    )
+    return COMMUNITY_API.post('/api/community/posts', payload)
   },
 
   async getTrendingTopics() {
-    return tryPaths(
-      ['/community/trending', '/trending'],
-      (path) => api.get(path),
-      (response) => Array.isArray(response?.trending)
-    )
+    return COMMUNITY_API.get('/api/community/trending')
   },
 
   async getUserStats() {
-    return tryPaths(
-      ['/community/user/stats', '/user/stats'],
-      (path) => api.get(path),
-      (response) => Boolean(response?.stats)
-    )
+    return COMMUNITY_API.get('/api/community/user/stats')
   }
 }

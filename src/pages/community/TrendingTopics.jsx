@@ -53,30 +53,35 @@ const TrendingTopics = ({ topics = [], loading = false, onRefresh }) => {
       className="card p-6 sticky top-6"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-xl font-bold flex items-center space-x-2">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+        <div className="min-w-0">
+          <h3 className="text-xl font-bold flex items-center space-x-2 break-words">
             <TrendingUp className="text-primary" size={20} />
             <span>Trending Topics</span>
           </h3>
-          <p className="text-sm text-text-secondary mt-1">
+          <p className="text-sm text-text-secondary mt-1 break-words">
             What the community is talking about
-            {isConnected && <span className="text-primary ml-2">• Live</span>}
+            {isConnected && (
+              <span className="text-primary ml-2 inline-flex items-center">
+                <span className="mx-1">•</span>
+                Live
+              </span>
+            )}
           </p>
         </div>
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-1 text-text-secondary">
           <Users size={16} className="text-text-secondary" />
           <span className="text-sm text-text-secondary">1.2K active</span>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-1 bg-card p-1 rounded-xl mb-6">
+      <div className="flex flex-wrap gap-2 bg-card p-2 rounded-xl mb-6">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex items-center justify-center space-x-2 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`flex-1 min-w-[7rem] flex items-center justify-center space-x-2 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === tab.id
                 ? 'bg-primary text-white'
                 : 'text-text-secondary hover:text-white'

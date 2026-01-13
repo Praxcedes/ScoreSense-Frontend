@@ -1,56 +1,151 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { TrendingUp, Target, Trophy, BarChart3, Download } from 'lucide-react'
 import StatCard from '../../components/common/StatCard'
 import LineChart from '../../components/charts/LineChart'
 import ProgressChart from '../../components/charts/ProgressChart'
+import { statsService } from '../../services/stats.service'
 
 const Stats = () => {
   const [timeRange, setTimeRange] = useState('30days')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [summary, setSummary] = useState(null)
+  const [predictionStats, setPredictionStats] = useState(null)
+  const [earnedTransactions, setEarnedTransactions] = useState([])
+  const [spentTransactions, setSpentTransactions] = useState([])
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const [summaryResponse, predictionsResponse, earnedResponse, spentResponse] = await Promise.all([
+          statsService.getSummary(),
+          statsService.getPredictions(),
+          statsService.getTransactions({ type: 'earned', per_page: 100 }),
+          statsService.getTransactions({ type: 'spent', per_page: 100 })
+        ])
+
+        setSummary(summaryResponse?.summary || null)
+        setPredictionStats(predictionsResponse?.stats || null)
+        setEarnedTransactions(earnedResponse?.transactions || [])
+        setSpentTransactions(spentResponse?.transactions || [])
+      } catch (fetchError) {
+        const message = fetchError?.error || fetchError?.message || 'Failed to load stats.'
+        setError(message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [])
+
+  const totalPredictions = predictionStats?.total_predictions || 0
+  const winRate = predictionStats?.win_rate || 0
+  const streak = summary?.streak || 0
+  const pointsBalance = summary?.points || 0
+
+  const earnedTotal = earnedTransactions.reduce((sum, tx) => sum + (tx.amount > 0 ? tx.amount : 0), 0)
+  const spentTotal = spentTransactions.reduce(
+    (sum, tx) => sum + (tx.amount < 0 ? Math.abs(tx.amount) : tx.amount),
+    0
+  )
+  const netProfit = earnedTotal - spentTotal
 
   const stats = [
     {
       title: 'Total Predictions',
-      value: '1,245',
-      change: '+12%',
+      value: totalPredictions.toLocaleString(),
+      change: `${predictionStats?.success_rate ? `${predictionStats.success_rate.toFixed(1)}%` : ''}`,
       icon: <BarChart3 className="text-blue-400" size={24} />,
       color: 'blue'
     },
     {
       title: 'Win Rate',
-      value: '68.4%',
-      change: '+2.5%',
+      value: `${winRate.toFixed(1)}%`,
+      change: `${predictionStats?.won_predictions || 0} won`,
       icon: <TrendingUp className="text-green-400" size={24} />,
       color: 'green'
     },
     {
       title: 'Total Profit',
-      value: '+2,450 PTS',
-      change: '+15%',
+      value: `${netProfit >= 0 ? '+' : '-'}${Math.abs(netProfit).toLocaleString()} PTS`,
+      change: `${earnedTotal.toLocaleString()} earned`,
       icon: <Trophy className="text-yellow-400" size={24} />,
       color: 'yellow'
     },
     {
       title: 'Best Streak',
-      value: '8 wins',
+      value: `${streak} wins`,
       change: 'Record',
       icon: <Target className="text-purple-400" size={24} />,
       color: 'purple'
     }
   ]
 
-  const performanceData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [
-      {
-        label: 'Points Earned',
-        data: [450, 520, 680, 810, 950, 1240],
-        borderColor: '#22C55E',
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-        fill: true
-      }
-    ]
-  }
+  const filteredEarned = useMemo(() => {
+    const rangeDays = timeRange === '7days' ? 7 : timeRange === '90days' ? 90 : 30
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - rangeDays)
+    return earnedTransactions.filter((tx) => {
+      if (!tx.created_at) return false
+      return new Date(tx.created_at) >= cutoff
+    })
+  }, [earnedTransactions, timeRange])
+
+  const performanceData = useMemo(() => {
+    const buckets = {}
+    filteredEarned.forEach((tx) => {
+      const dateKey = tx.created_at?.slice(0, 10)
+      if (!dateKey) return
+      buckets[dateKey] = (buckets[dateKey] || 0) + (tx.amount > 0 ? tx.amount : 0)
+    })
+
+    const labels = Object.keys(buckets).sort()
+    const values = labels.map((label) => buckets[label])
+
+    return {
+      labels: labels.length ? labels : ['No data'],
+      datasets: [
+        {
+          label: 'Points Earned',
+          data: values.length ? values : [0],
+          borderColor: '#22C55E',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          fill: true
+        }
+      ]
+    }
+  }, [filteredEarned])
+
+  const progressGoals = [
+    {
+      label: 'Monthly Predictions',
+      value: `${totalPredictions}/50`,
+      progress: Math.min((totalPredictions / 50) * 100, 100)
+    },
+    {
+      label: 'Win Rate Target',
+      value: `${winRate.toFixed(1)}%/70%`,
+      progress: Math.min((winRate / 70) * 100, 100)
+    },
+    {
+      label: 'Points Goal',
+      value: `${pointsBalance.toLocaleString()}/5,000`,
+      progress: Math.min((pointsBalance / 5000) * 100, 100)
+    }
+  ]
+
+  const sportPerformance = [
+    {
+      sport: 'All Sports',
+      accuracy: Math.round(winRate),
+      points: Math.round(netProfit)
+    }
+  ]
 
   return (
     <div className="space-y-6">
@@ -86,6 +181,11 @@ const Stats = () => {
       </div>
 
       {/* Stats Overview */}
+      {error && (
+        <div className="card p-4 text-red-400 border border-red-500/30 bg-red-500/10">
+          {error}
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <motion.div
@@ -126,27 +226,15 @@ const Stats = () => {
           >
             <h2 className="text-xl font-bold mb-6">Progress Goals</h2>
             <div className="space-y-6">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">Monthly Predictions</span>
-                  <span className="text-primary font-bold">24/50</span>
+              {progressGoals.map((goal) => (
+                <div key={goal.label}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium">{goal.label}</span>
+                    <span className="text-primary font-bold">{goal.value}</span>
+                  </div>
+                  <ProgressChart progress={goal.progress} />
                 </div>
-                <ProgressChart progress={48} />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">Win Rate Target</span>
-                  <span className="text-primary font-bold">68.4%/70%</span>
-                </div>
-                <ProgressChart progress={97.7} />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">Points Goal</span>
-                  <span className="text-primary font-bold">2,450/5,000</span>
-                </div>
-                <ProgressChart progress={49} />
-              </div>
+              ))}
             </div>
           </motion.div>
         </div>
@@ -160,9 +248,7 @@ const Stats = () => {
       >
         <h2 className="text-xl font-bold mb-6">Sport Performance</h2>
         <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-          {[
-            { sport: "Football", accuracy: 72, points: 1240 },
-          ].map((item, index) => (
+          {sportPerformance.map((item, index) => (
             <div key={index} className="bg-card p-4 rounded-xl">
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">{item.accuracy}%</div>

@@ -5,12 +5,16 @@ import { usePoints } from '../../hooks/usePoints'
 import { toast } from 'react-hot-toast'
 
 const MatchCard = ({ match, compact = false, featured = false }) => {
-  const { makePrediction, points } = usePoints()
+  const { makePrediction, points, walletConnected } = usePoints()
   const [selectedPrediction, setSelectedPrediction] = useState(null)
   const [stake, setStake] = useState(50)
   const [predicting, setPredicting] = useState(false)
 
   const handlePredict = async () => {
+    if (!walletConnected) {
+      toast.error('Connect your wallet to place predictions')
+      return
+    }
     if (!selectedPrediction) {
       toast.error('Please select a prediction')
       return

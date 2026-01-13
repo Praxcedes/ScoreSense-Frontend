@@ -63,6 +63,37 @@ export const pointsService = {
     }
   },
 
+  async getRewards() {
+    try {
+      const response = await api.get('/points/rewards')
+      if (response && response.rewards) {
+        return response
+      }
+      return { rewards: [] }
+    } catch (error) {
+      console.log('Using mock rewards:', error.message)
+      return { rewards: [] }
+    }
+  },
+
+  async redeemReward(rewardId) {
+    try {
+      const response = await api.post('/points/redeem', { reward_id: rewardId })
+      return response
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  },
+
+  async claimReward(rewardId) {
+    try {
+      const response = await api.post('/points/claim', { reward_id: rewardId })
+      return response
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  },
+
   async getPredictions() {
     try {
       const response = await api.get('/points/predictions')
