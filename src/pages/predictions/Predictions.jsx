@@ -20,33 +20,46 @@ import {
   Star
 } from 'lucide-react'
 import { usePoints } from '../../hooks/usePoints'
+import { useMatches } from '../../hooks/useMatches'
 import PredictionCard from '../../components/predictions/PredictionCard'
 import PredictionForm from '../../components/predictions/PredictionForm'
 import Loader from '../../components/common/Loader'
 
 const Predictions = () => {
-  const { predictions, points } = usePoints()
+  const { predictions, predictionsStats, points } = usePoints()
+  const { liveMatches = [], upcomingMatches = [] } = useMatches() || {}
   const [activeTab, setActiveTab] = useState('active')
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [sportFilter, setSportFilter] = useState('all')
   const [sortBy, setSortBy] = useState('recent')
 
+  const statusCounts = (predictions || []).reduce((acc, prediction) => {
+    const status = (prediction?.status || 'pending').toLowerCase()
+    acc[status] = (acc[status] || 0) + 1
+    return acc
+  }, {})
+
+  const totalPredictions = predictionsStats?.total_predictions ?? (predictions?.length || 0)
+  const activePredictions = predictionsStats?.active_predictions ?? statusCounts.active ?? 0
+  const wonPredictions = predictionsStats?.won_predictions ?? statusCounts.won ?? 0
+  const lostPredictions = predictionsStats?.lost_predictions ?? statusCounts.lost ?? 0
+  const pendingPredictions = statusCounts.pending ?? 0
+  const winRate = Number.isFinite(predictionsStats?.win_rate)
+    ? `${predictionsStats.win_rate.toFixed(1)}%`
+    : '0%'
+
   const tabs = [
-    { id: 'active', name: 'Active', count: 12 },
-    { id: 'pending', name: 'Pending', count: 3 },
-    { id: 'won', name: 'Won', count: 8 },
-    { id: 'lost', name: 'Lost', count: 4 },
-    { id: 'all', name: 'All', count: predictions?.length || 27 }
+    { id: 'active', name: 'Active', count: activePredictions },
+    { id: 'pending', name: 'Pending', count: pendingPredictions },
+    { id: 'won', name: 'Won', count: wonPredictions },
+    { id: 'lost', name: 'Lost', count: lostPredictions },
+    { id: 'all', name: 'All', count: totalPredictions }
   ]
 
   const sports = [
-    { id: 'all', name: 'All Sports', icon: '🏆' },
-    { id: 'football', name: 'Football', icon: '⚽' },
-    { id: 'basketball', name: 'Basketball', icon: '🏀' },
-    { id: 'tennis', name: 'Tennis', icon: '🎾' },
-    { id: 'mma', name: 'MMA', icon: '🥊' },
-    { id: 'cricket', name: 'Cricket', icon: '🏏' }
+    { id: "all", name: "All Sports", icon: "🏆" },
+    { id: "football", name: "Football", icon: "⚽" }
   ]
 
   const sortOptions = [
@@ -59,69 +72,34 @@ const Predictions = () => {
   const stats = [
     {
       title: 'Total Predictions',
-      value: '1,245',
-      change: '+12%',
+      value: totalPredictions.toLocaleString(),
+      change: null,
       icon: <Target className="text-primary" />,
       color: 'primary'
     },
     {
       title: 'Win Rate',
-      value: '68.4%',
-      change: '+2.5%',
+      value: winRate,
+      change: null,
       icon: <TrendingUp className="text-green-400" />,
       color: 'green'
     },
     {
-      title: 'Total Profit',
-      value: '+2,450 PTS',
-      change: '+15%',
+      title: 'Won Predictions',
+      value: wonPredictions.toLocaleString(),
+      change: null,
       icon: <Trophy className="text-yellow-400" />,
       color: 'yellow'
     },
     {
-      title: 'Avg. Return',
-      value: '87.5%',
-      change: '+3.2%',
+      title: 'Lost Predictions',
+      value: lostPredictions.toLocaleString(),
+      change: null,
       icon: <BarChart3 className="text-purple-400" />,
       color: 'purple'
     }
   ]
-
-  const quickPredictions = [
-    {
-      id: 1,
-      match: 'Gor Mahia vs AFC Leopards',
-      prediction: 'Home Win',
-      odds: 1.85,
-      stake: 50,
-      potential: 92.5,
-      status: 'active',
-      confidence: 78,
-      timeLeft: '2h 30m'
-    },
-    {
-      id: 2,
-      match: 'Man City vs Arsenal',
-      prediction: 'Over 2.5 Goals',
-      odds: 1.65,
-      stake: 100,
-      potential: 165,
-      status: 'won',
-      confidence: 65,
-      result: '+65 PTS'
-    },
-    {
-      id: 3,
-      match: 'Adesanya vs Du Plessis',
-      prediction: 'Adesanya KO',
-      odds: 2.20,
-      stake: 75,
-      potential: 165,
-      status: 'pending',
-      confidence: 82,
-      timeLeft: '1d 4h'
-    }
-  ]
+  const quickPredictions = (predictions || []).slice(0, 3)
 
   return (
     <div className="space-y-6">
@@ -164,11 +142,13 @@ const Predictions = () => {
                                       'bg-purple-500/20'} rounded-xl`}>
                 {stat.icon}
               </div>
-              <span className={`text-sm font-medium ${
-                stat.change?.startsWith('+') ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {stat.change}
-              </span>
+              {stat.change && (
+                <span className={`text-sm font-medium ${
+                  stat.change.startsWith('+') ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {stat.change}
+                </span>
+              )}
             </div>
             <h3 className="text-3xl font-bold">{stat.value}</h3>
             <p className="text-text-secondary text-sm mt-1">{stat.title}</p>
@@ -252,9 +232,15 @@ const Predictions = () => {
               <Zap size={20} className="text-yellow-400" />
               <span>Quick Predictions</span>
             </h3>
-            {quickPredictions.map((prediction, index) => (
-              <PredictionCard key={prediction.id} prediction={prediction} index={index} />
-            ))}
+            {quickPredictions.length > 0 ? (
+              quickPredictions.map((prediction, index) => (
+                <PredictionCard key={prediction.id || index} prediction={prediction} index={index} />
+              ))
+            ) : (
+              <div className="card p-6 text-center text-text-secondary">
+                No recent predictions yet.
+              </div>
+            )}
           </div>
 
           {/* All Predictions */}
@@ -296,7 +282,11 @@ const Predictions = () => {
           {/* Prediction Form Modal */}
           <AnimatePresence>
             {showForm && (
-              <PredictionForm onClose={() => setShowForm(false)} />
+              <PredictionForm
+                onClose={() => setShowForm(false)}
+                matches={[...liveMatches, ...upcomingMatches]}
+                allowLive
+              />
             )}
           </AnimatePresence>
 

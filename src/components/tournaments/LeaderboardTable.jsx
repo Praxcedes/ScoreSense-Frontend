@@ -22,9 +22,9 @@ const LeaderboardTable = ({ leaderboard }) => {
   }
 
   const getChangeIcon = (change) => {
-    if (change > 0) return <TrendingUp className="text-green-400" size={14} />
-    if (change < 0) return <TrendingDown className="text-red-400" size={14} />
-    return <Minus className="text-text-secondary" size={14} />
+    if (change > 0) return <TrendingUp className="text-green-400" size={16} />
+    if (change < 0) return <TrendingDown className="text-red-400" size={16} />
+    return <Minus className="text-text-secondary" size={16} />
   }
 
   return (

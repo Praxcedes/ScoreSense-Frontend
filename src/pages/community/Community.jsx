@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   MessageSquare,
@@ -16,10 +16,20 @@ import PostComposer from '../../components/community/PostComposer'
 import PostCard from '../../components/community/PostCard'
 import TrendingTopics from './TrendingTopics'
 import StatCard from '../../components/common/StatCard'
+import { communityService } from '../../services/community.service'
+import { useAuth } from '../../hooks/useAuth'
 
 const Community = () => {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('trending')
   const [searchQuery, setSearchQuery] = useState('')
+  const [posts, setPosts] = useState([])
+  const [trendingTopics, setTrendingTopics] = useState([])
+  const [pagination, setPagination] = useState(null)
+  const [loadingPosts, setLoadingPosts] = useState(true)
+  const [loadingTrending, setLoadingTrending] = useState(true)
+  const [stats, setStats] = useState(null)
+  const [error, setError] = useState(null)
 
   const tabs = [
     { id: 'trending', name: 'Trending', icon: <TrendingUp size={18} /> },
@@ -28,45 +38,98 @@ const Community = () => {
     { id: 'my-posts', name: 'My Posts', icon: <MessageSquare size={18} /> }
   ]
 
-  const communityStats = [
-    { title: 'Active Users', value: '1.2K', icon: <Users />, color: 'blue' },
-    { title: 'Daily Posts', value: '543', icon: <MessageSquare />, color: 'green' },
-    { title: 'Accuracy Rate', value: '89%', icon: <Award />, color: 'yellow' },
-    { title: 'Top Predictors', value: '42', icon: <Crown />, color: 'purple' }
-  ]
+  const communityStats = useMemo(() => {
+    if (!stats) return []
+    return [
+      { title: 'Posts', value: stats.posts_count ?? 0, icon: <MessageSquare />, color: 'blue' },
+      { title: 'Followers', value: stats.followers_count ?? 0, icon: <Users />, color: 'green' },
+      { title: 'Following', value: stats.following_count ?? 0, icon: <Award />, color: 'yellow' },
+      { title: 'Total Likes', value: stats.total_likes ?? 0, icon: <Crown />, color: 'purple' }
+    ]
+  }, [stats])
 
-  const trendingPosts = [
-    {
-      id: 1,
-      author: {
-        name: 'Juma_Analytics',
-        avatar: 'JA',
-        premium: true,
-        rank: '#12'
-      },
-      content: 'Gor Mahia\'s away form is shaky, but Leopards missing 3 key defenders makes value on away win. Stats suggest 2-1 to Gor.',
-      likes: 124,
-      comments: 32,
-      shares: 8,
-      timestamp: '2 hours ago',
-      tags: ['#MashemejiDerby', '#KPL', '#Analysis']
-    },
-    {
-      id: 2,
-      author: {
-        name: 'PredictorPro',
-        avatar: 'PP',
-        premium: true,
-        rank: '#5'
-      },
-      content: 'UFC 305: Adesanya\'s striking accuracy vs Du Plessis grappling. Round 3 TKO for the champ based on recent performances.',
-      likes: 89,
-      comments: 24,
-      shares: 5,
-      timestamp: '4 hours ago',
-      tags: ['#UFC305', '#Adesanya', '#MMA']
+  const fetchPosts = useCallback(async () => {
+    try {
+      setLoadingPosts(true)
+      const response = await communityService.getPosts({ page: 1, perPage: 20 })
+      if (response?.success) {
+        setPosts(response.posts || [])
+        setPagination(response.pagination || null)
+      } else {
+        setError(response?.error || 'Failed to load posts')
+      }
+    } catch (fetchError) {
+      setError(fetchError?.error || fetchError?.message || 'Failed to load posts')
+    } finally {
+      setLoadingPosts(false)
     }
-  ]
+  }, [])
+
+  const fetchTrending = useCallback(async () => {
+    try {
+      setLoadingTrending(true)
+      const response = await communityService.getTrendingTopics()
+      if (response?.success) {
+        const topics = (response.trending || []).map((topic) => ({
+          id: topic.id,
+          title: topic.topic,
+          posts: topic.post_count,
+          engagement: topic.trending_score,
+          trend: topic.trending_score > 0 ? 'up' : 'steady',
+          change: topic.trending_score,
+          hot: topic.trending_score >= 10,
+          icon: '🔥'
+        }))
+        setTrendingTopics(topics)
+      } else {
+        setError(response?.error || 'Failed to load trending topics')
+      }
+    } catch (fetchError) {
+      setError(fetchError?.error || fetchError?.message || 'Failed to load trending topics')
+    } finally {
+      setLoadingTrending(false)
+    }
+  }, [])
+
+  const fetchStats = useCallback(async () => {
+    if (!user) return
+    try {
+      const response = await communityService.getUserStats()
+      if (response?.success) {
+        setStats(response.stats)
+      }
+    } catch (fetchError) {
+      console.warn('Failed to load community stats', fetchError)
+    }
+  }, [user])
+
+  useEffect(() => {
+    fetchPosts()
+    fetchTrending()
+    fetchStats()
+  }, [fetchPosts, fetchTrending, fetchStats])
+
+  const filteredPosts = useMemo(() => {
+    const base = posts.filter((post) => {
+      if (!searchQuery) return true
+      const query = searchQuery.toLowerCase()
+      return (post.content || '').toLowerCase().includes(query)
+    })
+
+    if (activeTab === 'my-posts' && user?.id) {
+      return base.filter((post) => post.user_id === user.id || post.author?.id === user.id)
+    }
+
+    if (activeTab === 'premium') {
+      return base.filter((post) => post.author?.premium || post.author?.is_premium)
+    }
+
+    return base
+  }, [activeTab, posts, searchQuery, user])
+
+  const handlePostCreated = (post) => {
+    setPosts((prev) => [post, ...prev])
+  }
 
   return (
     <div className="space-y-6">
@@ -100,24 +163,36 @@ const Community = () => {
         </div>
       </motion.div>
 
+      {error && (
+        <div className="card p-4 text-red-400 border border-red-500/30">
+          {error}
+        </div>
+      )}
+
       {/* Community Stats */}
-      <div className="grid-dashboard">
-        {communityStats.map((stat, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <StatCard {...stat} />
-          </motion.div>
-        ))}
-      </div>
+      {communityStats.length > 0 && (
+        <div className="grid-dashboard">
+          {communityStats.map((stat, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <StatCard {...stat} />
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Sidebar - Trending Topics */}
         <div className="lg:col-span-1">
-          <TrendingTopics />
+          <TrendingTopics
+            topics={trendingTopics}
+            loading={loadingTrending}
+            onRefresh={fetchTrending}
+          />
         </div>
 
         {/* Main Content - Posts */}
@@ -143,20 +218,26 @@ const Community = () => {
           </div>
 
           {/* Post Composer */}
-          <PostComposer />
+          <PostComposer onPostCreated={handlePostCreated} />
 
           {/* Posts */}
           <div className="space-y-4">
-            {trendingPosts.map((post, index) => (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <PostCard post={post} />
-              </motion.div>
-            ))}
+            {loadingPosts ? (
+              <div className="card p-6 text-text-secondary">Loading posts...</div>
+            ) : filteredPosts.length === 0 ? (
+              <div className="card p-6 text-text-secondary">No posts yet.</div>
+            ) : (
+              filteredPosts.map((post, index) => (
+                <motion.div
+                  key={post.id || index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <PostCard post={post} />
+                </motion.div>
+              ))
+            )}
           </div>
 
           {/* Community Guidelines */}

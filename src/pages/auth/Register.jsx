@@ -17,18 +17,41 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
+
+  const parseFieldErrors = (message) => {
+    if (!message) return {}
+    const nextErrors = {}
+    if (message.startsWith('Missing required field:')) {
+      const field = message.split(':')[1]?.trim()
+      if (field) {
+        nextErrors[field] = message
+      }
+    }
+    if (message.toLowerCase().includes('username')) {
+      nextErrors.username = message
+    }
+    if (message.toLowerCase().includes('email')) {
+      nextErrors.email = message
+    }
+    if (message.toLowerCase().includes('password')) {
+      nextErrors.password = message
+    }
+    return nextErrors
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setFieldErrors({})
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
+      setFieldErrors({ confirmPassword: 'Passwords do not match' })
       return
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters')
+    if (formData.password.length < 8) {
+      setFieldErrors({ password: 'Password must be at least 8 characters long' })
       return
     }
 
@@ -44,10 +67,22 @@ const Register = () => {
       if (result.success) {
         navigate('/dashboard')
       } else {
-        setError(result.error || 'Registration failed')
+        const message = result.error || 'Registration failed'
+        const parsed = parseFieldErrors(message)
+        if (Object.keys(parsed).length) {
+          setFieldErrors(parsed)
+        } else {
+          setError(message)
+        }
       }
     } catch (err) {
-      setError('An unexpected error occurred')
+      const message = err?.response?.data?.error || err.message || 'An unexpected error occurred'
+      const parsed = parseFieldErrors(message)
+      if (Object.keys(parsed).length) {
+        setFieldErrors(parsed)
+      } else {
+        setError(message)
+      }
     } finally {
       setLoading(false)
     }
@@ -100,6 +135,9 @@ const Register = () => {
                   required
                 />
               </div>
+              {fieldErrors.username && (
+                <p className="text-xs text-red-400 mt-2">{fieldErrors.username}</p>
+              )}
             </div>
 
             <div>
@@ -117,6 +155,9 @@ const Register = () => {
                   required
                 />
               </div>
+              {fieldErrors.email && (
+                <p className="text-xs text-red-400 mt-2">{fieldErrors.email}</p>
+              )}
             </div>
 
             <div>
@@ -141,7 +182,10 @@ const Register = () => {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              <p className="text-xs text-text-secondary mt-2">At least 6 characters</p>
+              <p className="text-xs text-text-secondary mt-2">Minimum 8 characters</p>
+              {fieldErrors.password && (
+                <p className="text-xs text-red-400 mt-2">{fieldErrors.password}</p>
+              )}
             </div>
 
             <div>
@@ -166,6 +210,9 @@ const Register = () => {
                   {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
+              {fieldErrors.confirmPassword && (
+                <p className="text-xs text-red-400 mt-2">{fieldErrors.confirmPassword}</p>
+              )}
             </div>
 
             <label className="flex items-start">

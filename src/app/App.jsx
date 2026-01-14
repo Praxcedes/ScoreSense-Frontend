@@ -2,13 +2,13 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from '../context/AuthContext'
+import { MatchesProvider } from '../context/MatchesContext'
 import { WebSocketProvider } from '../context/WebSocketContext'
 import { PointsProvider } from '../context/PointsContext'
-import { MatchesProvider } from '../context/MatchesContext'
 import ProtectedRoute from './ProtectedRoute'
 import MainLayout from '../components/layout/MainLayout'
 
-// Auth Pages - MUST import them as default
+// Auth Pages
 import Login from '../pages/auth/Login'
 import Register from '../pages/auth/Register'
 
@@ -22,7 +22,16 @@ import Settings from '../pages/settings/Settings'
 import Points from '../pages/points/Points'
 import Notifications from '../pages/notifications/Notifications'
 import Predictions from '../pages/predictions/Predictions'
-import Tournaments from '../pages/tournaments/Tournaments'
+import CoinClash from '../pages/tournaments/CoinClash'
+import AdminLayout from '../layouts/AdminLayout'
+import AdminLogin from '../pages/admin/AdminLogin'
+import AdminRoute from './AdminRoute'
+import AdminOverview from '../pages/admin/Overview'
+import AdminTournaments from '../pages/admin/Tournaments'
+import AdminPredictions from '../pages/admin/Predictions'
+import AdminTransactions from '../pages/admin/Transactions'
+import AdminConfig from '../pages/admin/Config'
+import AdminMaintenance from '../pages/admin/Maintenance'
 
 // Default export is required
 const App = () => {
@@ -46,19 +55,29 @@ const App = () => {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
                 
                 <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/matches" element={<Matches />} />
                   <Route path="/predictions" element={<Predictions />} />
-                  <Route path="/tournaments" element={<Tournaments />} />
+                  <Route path="/coinclash" element={<CoinClash />} />
                   <Route path="/community" element={<Community />} />
                   <Route path="/stats" element={<Stats />} />
                   <Route path="/points" element={<Points />} />
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
+                </Route>
+
+                <Route element={<AdminRoute><AdminLayout /></AdminRoute>}>
+                  <Route path="/admin" element={<AdminOverview />} />
+                  <Route path="/admin/tournaments" element={<AdminTournaments />} />
+                  <Route path="/admin/predictions" element={<AdminPredictions />} />
+                  <Route path="/admin/transactions" element={<AdminTransactions />} />
+                  <Route path="/admin/config" element={<AdminConfig />} />
+                  <Route path="/admin/maintenance" element={<AdminMaintenance />} />
                 </Route>
                 
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />

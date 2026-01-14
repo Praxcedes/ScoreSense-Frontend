@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   X,
@@ -13,33 +13,57 @@ import {
 import { usePoints } from '../../hooks/usePoints'
 import { toast } from 'react-hot-toast'
 
-const PredictionForm = ({ onClose }) => {
-  const { points, makePrediction } = usePoints()
+const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true, defaultStake = 50 }) => {
+  const { points, makePrediction, walletConnected } = usePoints()
   const [formData, setFormData] = useState({
-    match: '',
+    match: match ? `${match.homeTeam} vs ${match.awayTeam}` : '',
+    matchId: match?.id || null,
     prediction: '',
     odds: 1.85,
-    stake: 50,
+    stake: defaultStake,
     confidence: 75
   })
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(match ? 2 : 1)
 
-  const matches = [
-    'Gor Mahia vs AFC Leopards',
-    'Manchester City vs Arsenal',
-    'Adesanya vs Du Plessis',
-    'Liverpool vs Chelsea',
-    'Barcelona vs Real Madrid'
-  ]
+  const availableMatches = useMemo(() => {
+    if (!matches.length) {
+      return []
+    }
+    if (!formData.match) {
+      return matches
+    }
+    const query = formData.match.toLowerCase()
+    return matches.filter((item) => (
+      `${item.homeTeam} ${item.awayTeam} ${item.league || ''}`.toLowerCase().includes(query)
+    ))
+  }, [formData.match, matches])
 
-  const predictions = [
-    'Home Win',
-    'Draw',
-    'Away Win',
-    'Over 2.5 Goals',
-    'Under 2.5 Goals',
-    'Both Teams to Score'
-  ]
+  const selectedMatch = useMemo(() => {
+    if (match) {
+      return match
+    }
+    return matches.find((item) => item.id === formData.matchId) || null
+  }, [formData.matchId, match, matches])
+
+  const predictions = useMemo(() => {
+    if (selectedMatch?.homeTeam && selectedMatch?.awayTeam) {
+      return [
+        { label: `${selectedMatch.homeTeam} Win`, value: 'home_win', odds: selectedMatch.odds?.home },
+        { label: 'Draw', value: 'draw', odds: selectedMatch.odds?.draw },
+        { label: `${selectedMatch.awayTeam} Win`, value: 'away_win', odds: selectedMatch.odds?.away }
+      ]
+    }
+    return [
+      { label: 'Home Win', value: 'home_win' },
+      { label: 'Draw', value: 'draw' },
+      { label: 'Away Win', value: 'away_win' }
+    ]
+  }, [selectedMatch])
+
+  const selectedPredictionLabel = useMemo(() => {
+    const hit = predictions.find((item) => item.value === formData.prediction)
+    return hit?.label || formData.prediction
+  }, [formData.prediction, predictions])
 
   const calculatePotential = () => {
     return Math.round(formData.stake * formData.odds)
@@ -48,13 +72,27 @@ const PredictionForm = ({ onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    if (!walletConnected) {
+      toast.error('Connect your wallet to place predictions')
+      return
+    }
     if (formData.stake > points) {
       toast.error('Insufficient points')
       return
     }
 
+    if (!formData.matchId) {
+      toast.error('Please select a match')
+      return
+    }
+
+    if (!allowLive && selectedMatch?.status === 'live') {
+      toast.error('Live match predictions are disabled')
+      return
+    }
+
     const result = await makePrediction(
-      Date.now(),
+      formData.matchId,
       formData.prediction,
       formData.stake
     )
@@ -141,19 +179,23 @@ const PredictionForm = ({ onClose }) => {
                   Quick Select
                 </label>
                 <div className="grid grid-cols-1 gap-2">
-                  {matches.map((match) => (
+                  {availableMatches.map((item) => (
                     <button
-                      key={match}
+                      key={item.id}
                       type="button"
-                      onClick={() => setFormData({ ...formData, match })}
+                      onClick={() => setFormData({
+                        ...formData,
+                        match: `${item.homeTeam} vs ${item.awayTeam}`,
+                        matchId: item.id
+                      })}
                       className={`p-4 rounded-xl text-left transition-all ${
-                        formData.match === match
+                        formData.matchId === item.id
                           ? 'bg-primary text-white'
                           : 'bg-card hover:bg-hover'
                       }`}
                     >
-                      <div className="font-medium">{match}</div>
-                      <div className="text-sm opacity-80">Today • 19:30 • Premier League</div>
+                      <div className="font-medium">{item.homeTeam} vs {item.awayTeam}</div>
+                      <div className="text-sm opacity-80">{item.league || 'League'} • {item.startTime || item.time || 'TBD'}</div>
                     </button>
                   ))}
                 </div>
@@ -171,7 +213,7 @@ const PredictionForm = ({ onClose }) => {
                 </label>
                 <div className="p-4 bg-card rounded-xl">
                   <div className="font-bold">{formData.match}</div>
-                  <div className="text-sm text-text-secondary">Today • 19:30 • Premier League</div>
+                  <div className="text-sm text-text-secondary">{selectedMatch?.league || 'League'}</div>
                 </div>
               </div>
 
@@ -181,18 +223,25 @@ const PredictionForm = ({ onClose }) => {
                     Prediction Type
                   </label>
                   <div className="space-y-2">
-                    {predictions.slice(0, 3).map((pred) => (
+                    {predictions.map((pred) => (
                       <button
-                        key={pred}
+                        key={pred.value}
                         type="button"
-                        onClick={() => setFormData({ ...formData, prediction: pred })}
+                        onClick={() => setFormData({
+                          ...formData,
+                          prediction: pred.value,
+                          odds: pred.odds || formData.odds
+                        })}
                         className={`w-full p-3 rounded-lg text-left transition-all ${
-                          formData.prediction === pred
+                          formData.prediction === pred.value
                             ? 'bg-primary text-white'
                             : 'bg-card hover:bg-hover'
                         }`}
                       >
-                        {pred}
+                        <div className="font-medium">{pred.label}</div>
+                        {pred.odds && (
+                          <div className="text-xs opacity-80">Odds: {pred.odds}</div>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -253,7 +302,7 @@ const PredictionForm = ({ onClose }) => {
                   </div>
                   <div>
                     <div className="text-sm text-text-secondary">Prediction</div>
-                    <div className="font-bold text-primary">{formData.prediction}</div>
+                    <div className="font-bold text-primary">{selectedPredictionLabel || 'Select prediction'}</div>
                   </div>
                   <div>
                     <div className="text-sm text-text-secondary">Odds</div>

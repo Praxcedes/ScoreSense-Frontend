@@ -37,9 +37,9 @@ const PredictionCard = ({ prediction, index }) => {
       transition={{ delay: index * 0.1 }}
       className="card p-6"
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h4 className="font-bold text-lg">{prediction.match}</h4>
+      <div className="flex items-start justify-between mb-4 gap-3">
+        <div className="flex-1 min-w-0">
+          <h4 className="font-bold text-lg break-words">{prediction.match}</h4>
           <div className="flex items-center space-x-4 mt-2">
             <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-lg ${getStatusColor(prediction.status)}`}>
               {getStatusIcon(prediction.status)}
@@ -51,8 +51,8 @@ const PredictionCard = ({ prediction, index }) => {
             </span>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold">{prediction.odds}</div>
+        <div className="text-right min-w-[4rem]">
+          <div className="text-2xl font-bold break-words">{prediction.odds}</div>
           <div className="text-sm text-text-secondary">Odds</div>
         </div>
       </div>
@@ -63,7 +63,7 @@ const PredictionCard = ({ prediction, index }) => {
             <Target className="text-text-secondary" size={16} />
             <span className="text-sm text-text-secondary">Prediction</span>
           </div>
-          <div className="font-bold">{prediction.prediction}</div>
+          <div className="font-bold break-words">{prediction.prediction}</div>
         </div>
 
         <div className="bg-card p-4 rounded-xl">
@@ -71,7 +71,7 @@ const PredictionCard = ({ prediction, index }) => {
             <DollarSign className="text-text-secondary" size={16} />
             <span className="text-sm text-text-secondary">Stake</span>
           </div>
-          <div className="font-bold text-primary">{prediction.stake} PTS</div>
+          <div className="font-bold text-primary break-words">{prediction.stake} PTS</div>
         </div>
 
         <div className="bg-card p-4 rounded-xl">
@@ -79,7 +79,7 @@ const PredictionCard = ({ prediction, index }) => {
             <TrendingUp className="text-text-secondary" size={16} />
             <span className="text-sm text-text-secondary">Potential</span>
           </div>
-          <div className="font-bold text-green-400">{prediction.potential} PTS</div>
+          <div className="font-bold text-green-400 break-words">{prediction.potential} PTS</div>
         </div>
 
         <div className="bg-card p-4 rounded-xl">
@@ -89,7 +89,7 @@ const PredictionCard = ({ prediction, index }) => {
               {prediction.timeLeft ? 'Time Left' : 'Result'}
             </span>
           </div>
-          <div className={`font-bold ${
+          <div className={`font-bold break-words ${
             prediction.result?.startsWith('+') ? 'text-green-400' : 'text-red-400'
           }`}>
             {prediction.timeLeft || prediction.result}

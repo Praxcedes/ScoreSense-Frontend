@@ -1,11 +1,5 @@
 export const SPORTS = {
-  FOOTBALL: 'football',
-  BASKETBALL: 'basketball',
-  TENNIS: 'tennis',
-  CRICKET: 'cricket',
-  RUGBY: 'rugby',
-  MMA: 'mma',
-  BOXING: 'boxing'
+  FOOTBALL: 'football'
 }
 
 export const MATCH_STATUS = {

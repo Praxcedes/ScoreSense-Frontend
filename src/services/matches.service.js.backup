@@ -1,0 +1,123 @@
+import api from './api'
+
+export const matchesService = {
+  async getLiveMatches() {
+    try {
+      const response = await api.get('/matches/live')
+      return response || { success: false, matches: [], count: 0 }
+    } catch (error) {
+      console.error('Error fetching live matches:', error)
+      return { 
+        success: false, 
+        matches: [], 
+        count: 0, 
+        error: error.message || 'Failed to load live matches',
+        source: 'error'
+      }
+    }
+  },
+
+  async getUpcomingMatches(limit = 20, sport = null, league = null) {
+    try {
+      const params = { limit }
+      if (sport) params.sport = sport
+      if (league) params.league = league
+      
+      const response = await api.get('/matches/upcoming', { params })
+      return response || { success: false, matches: [], count: 0 }
+    } catch (error) {
+      console.error('Error fetching upcoming matches:', error)
+      return { 
+        success: false, 
+        matches: [], 
+        count: 0, 
+        error: error.message || 'Failed to load upcoming matches',
+        source: 'error'
+      }
+    }
+  },
+
+  async getMatchDetails(matchId) {
+    try {
+      const response = await api.get(`/matches/${matchId}`)
+      return response || { success: false, match: null, error: 'Match not found' }
+    } catch (error) {
+      console.error('Error fetching match details:', error)
+      return { 
+        success: false, 
+        match: null, 
+        error: error.message || 'Failed to load match details'
+      }
+    }
+  },
+
+  async searchMatches(query, limit = 20) {
+    try {
+      const response = await api.get('/matches/search', { 
+        params: { q: query, limit } 
+      })
+      return response || { success: false, matches: [], count: 0 }
+    } catch (error) {
+      console.error('Error searching matches:', error)
+      return { 
+        success: false, 
+        matches: [], 
+        count: 0, 
+        error: error.message || 'Search failed',
+        message: `No matches found for '${query}'`
+      }
+    }
+  },
+
+  async clearMatchesCache() {
+    try {
+      const response = await api.post('/matches/cache/clear')
+      return response || { success: false, message: 'Cache clear failed' }
+    } catch (error) {
+      console.error('Error clearing cache:', error)
+      return { success: false, message: error.message }
+    }
+  },
+
+  async getMockMatches(limit = 10) {
+    try {
+      const response = await api.get('/matches/mock', { params: { limit } })
+      return response || { success: false, matches: [], count: 0 }
+    } catch (error) {
+      console.error('Error fetching mock matches:', error)
+      return { success: false, matches: [], count: 0, error: error.message }
+    }
+  },
+
+  // Fallback methods if API endpoints don't exist
+  async getFeaturedMatches() {
+    try {
+      // Try to get some upcoming matches as featured
+      return await this.getUpcomingMatches(5)
+    } catch (error) {
+      return { success: false, matches: [], count: 0, error: error.message }
+    }
+  },
+
+  async getMatchStats(matchId) {
+    try {
+      // For now, return basic stats
+      const match = await this.getMatchDetails(matchId)
+      if (match.success) {
+        return {
+          success: true,
+          stats: {
+            possession: { home: 52, away: 48 },
+            shots: { home: 15, away: 12 },
+            shotsOnTarget: { home: 6, away: 4 },
+            corners: { home: 5, away: 3 },
+            fouls: { home: 12, away: 15 }
+          }
+        }
+      }
+      return match
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  }
+}

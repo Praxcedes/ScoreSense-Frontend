@@ -143,6 +143,12 @@ const Login = () => {
                 Sign up
               </Link>
             </p>
+            <p className="text-text-secondary mt-3">
+              Admin access?{' '}
+              <Link to="/admin/login" className="text-primary hover:text-primary/80 font-medium">
+                Sign in as admin
+              </Link>
+            </p>
           </div>
         </div>
 
@@ -173,4 +179,3 @@ const Login = () => {
 }
 
 export default Login
-
