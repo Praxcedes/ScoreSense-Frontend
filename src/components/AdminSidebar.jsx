@@ -1,45 +1,42 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  Trophy,
-  BarChart3,
-  Wallet,
-  Settings,
-  Shield,
-  Hammer
-} from 'lucide-react'
+import { LayoutDashboard, Users, Trophy, Shield, Database, Settings } from 'lucide-react'
+import appLogo from '../assets/ScoreSense Logo.png'
 
 const AdminSidebar = () => {
   const navItems = [
-    { to: '/admin', label: 'Overview', icon: <LayoutDashboard size={18} /> },
-    { to: '/admin/tournaments', label: 'Tournaments', icon: <Trophy size={18} /> },
-    { to: '/admin/predictions', label: 'Predictions', icon: <BarChart3 size={18} /> },
-    { to: '/admin/transactions', label: 'Transactions', icon: <Wallet size={18} /> },
-    { to: '/admin/config', label: 'Config', icon: <Settings size={18} /> },
-    { to: '/admin/maintenance', label: 'Maintenance', icon: <Hammer size={18} /> }
+    { path: '/admin', icon: <LayoutDashboard size={18} />, label: 'Overview' },
+    { path: '/admin/users', icon: <Users size={18} />, label: 'Users' },
+    { path: '/admin/tournaments', icon: <Trophy size={18} />, label: 'Tournaments' },
+    { path: '/admin/predictions', icon: <Shield size={18} />, label: 'Predictions' },
+    { path: '/admin/transactions', icon: <Database size={18} />, label: 'Transactions' },
+    { path: '/admin/settings', icon: <Settings size={18} />, label: 'Settings' }
   ]
 
   return (
-    <aside className="w-64 bg-surface border-r border-card min-h-screen p-6">
-      <div className="mb-8">
-        <div className="text-lg font-bold">ScoreSense Admin</div>
-        <div className="text-xs text-text-secondary mt-1">System controls</div>
+    <aside className="w-64 bg-surface border-r border-card h-screen sticky top-0 p-6">
+      <div className="flex items-center space-x-3 mb-6">
+        <div className="w-9 h-9 rounded-lg bg-card border border-border overflow-hidden flex items-center justify-center">
+          <img src={appLogo} alt="ScoreSense logo" className="w-full h-full object-contain" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold">Admin Panel</h2>
+          <p className="text-xs text-text-secondary">ScoreSense</p>
+        </div>
       </div>
       <nav className="space-y-2">
         {navItems.map((item) => (
           <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/admin'}
+            key={item.path}
+            to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg transition ${
-                isActive ? 'bg-primary text-black' : 'text-text-secondary hover:text-white hover:bg-hover'
+              `flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                isActive ? 'bg-primary/20 text-white' : 'text-text-secondary hover:text-white hover:bg-hover'
               }`
             }
           >
             {item.icon}
-            <span className="font-medium">{item.label}</span>
+            <span>{item.label}</span>
           </NavLink>
         ))}
       </nav>

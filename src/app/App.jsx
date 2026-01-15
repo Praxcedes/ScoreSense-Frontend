@@ -6,13 +6,16 @@ import { MatchesProvider } from '../context/MatchesContext'
 import { WebSocketProvider } from '../context/WebSocketContext'
 import { PointsProvider } from '../context/PointsContext'
 import ProtectedRoute from './ProtectedRoute'
+import AdminRoute from './AdminRoute'
+import SuperAdminRoute from './SuperAdminRoute'
 import MainLayout from '../components/layout/MainLayout'
+import AdminLayout from '../layouts/AdminLayout'
 
-// Auth Pages
 import Login from '../pages/auth/Login'
 import Register from '../pages/auth/Register'
+import AdminLogin from '../pages/admin/AdminLogin'
+import AdminRequest from '../pages/admin/AdminRequest'
 
-// Main Pages
 import Dashboard from '../pages/dashboard/Dashboard'
 import Matches from '../pages/matches/Matches'
 import Community from '../pages/community/Community'
@@ -23,17 +26,15 @@ import Points from '../pages/points/Points'
 import Notifications from '../pages/notifications/Notifications'
 import Predictions from '../pages/predictions/Predictions'
 import CoinClash from '../pages/tournaments/CoinClash'
-import AdminLayout from '../layouts/AdminLayout'
-import AdminLogin from '../pages/admin/AdminLogin'
-import AdminRoute from './AdminRoute'
+
 import AdminOverview from '../pages/admin/Overview'
 import AdminTournaments from '../pages/admin/Tournaments'
 import AdminPredictions from '../pages/admin/Predictions'
 import AdminTransactions from '../pages/admin/Transactions'
 import AdminConfig from '../pages/admin/Config'
 import AdminMaintenance from '../pages/admin/Maintenance'
+import AdminRequests from '../pages/admin/AdminRequests'
 
-// Default export is required
 const App = () => {
   return (
     <Router>
@@ -56,7 +57,8 @@ const App = () => {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
-                
+                <Route path="/admin/request" element={<AdminRequest />} />
+
                 <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard />} />
@@ -73,13 +75,22 @@ const App = () => {
 
                 <Route element={<AdminRoute><AdminLayout /></AdminRoute>}>
                   <Route path="/admin" element={<AdminOverview />} />
+                  <Route path="/admin/overview" element={<AdminOverview />} />
                   <Route path="/admin/tournaments" element={<AdminTournaments />} />
                   <Route path="/admin/predictions" element={<AdminPredictions />} />
                   <Route path="/admin/transactions" element={<AdminTransactions />} />
                   <Route path="/admin/config" element={<AdminConfig />} />
                   <Route path="/admin/maintenance" element={<AdminMaintenance />} />
+                  <Route
+                    path="/admin/requests"
+                    element={
+                      <SuperAdminRoute>
+                        <AdminRequests />
+                      </SuperAdminRoute>
+                    }
+                  />
                 </Route>
-                
+
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </MatchesProvider>

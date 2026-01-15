@@ -4,97 +4,101 @@ import {
   X,
   Search,
   Target,
-  DollarSign,
-  BarChart3,
   Shield,
-  TrendingUp,
-  Calendar
+  Zap
 } from 'lucide-react'
 import { usePoints } from '../../hooks/usePoints'
+import { useMatches } from '../../hooks/useMatches'
 import { toast } from 'react-hot-toast'
 
-const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true, defaultStake = 50 }) => {
-  const { points, makePrediction, walletConnected } = usePoints()
+const PredictionForm = ({ onClose, match: initialMatch = null, matches: providedMatches = [] }) => {
+  const { points, makePrediction } = usePoints()
+  const { upcomingMatches = [], liveMatches = [] } = useMatches()
+  const minStake = 10
+  const initialLabel = initialMatch?.name || (initialMatch?.homeTeam && initialMatch?.awayTeam
+    ? `${initialMatch.homeTeam} vs ${initialMatch.awayTeam}`
+    : '')
   const [formData, setFormData] = useState({
-    match: match ? `${match.homeTeam} vs ${match.awayTeam}` : '',
-    matchId: match?.id || null,
+    match: initialLabel,
     prediction: '',
-    odds: 1.85,
-    stake: defaultStake,
+    odds: initialMatch?.odds?.home || 1.85,
+    stake: minStake,
     confidence: 75
   })
-  const [step, setStep] = useState(match ? 2 : 1)
+  const [step, setStep] = useState(1)
+  const [selectedMatch, setSelectedMatch] = useState(initialMatch)
 
   const availableMatches = useMemo(() => {
-    if (!matches.length) {
-      return []
-    }
-    if (!formData.match) {
-      return matches
-    }
+    if (providedMatches.length > 0) return providedMatches
+    return [...upcomingMatches, ...liveMatches]
+  }, [providedMatches, upcomingMatches, liveMatches])
+
+  const filteredMatches = useMemo(() => {
+    if (!formData.match) return availableMatches
     const query = formData.match.toLowerCase()
-    return matches.filter((item) => (
-      `${item.homeTeam} ${item.awayTeam} ${item.league || ''}`.toLowerCase().includes(query)
-    ))
-  }, [formData.match, matches])
+    return availableMatches.filter((match) => {
+      const label = match.name || `${match.homeTeam || ''} ${match.awayTeam || ''}`
+      return label.toLowerCase().includes(query)
+    })
+  }, [availableMatches, formData.match])
 
-  const selectedMatch = useMemo(() => {
-    if (match) {
-      return match
-    }
-    return matches.find((item) => item.id === formData.matchId) || null
-  }, [formData.matchId, match, matches])
-
-  const predictions = useMemo(() => {
-    if (selectedMatch?.homeTeam && selectedMatch?.awayTeam) {
-      return [
-        { label: `${selectedMatch.homeTeam} Win`, value: 'home_win', odds: selectedMatch.odds?.home },
-        { label: 'Draw', value: 'draw', odds: selectedMatch.odds?.draw },
-        { label: `${selectedMatch.awayTeam} Win`, value: 'away_win', odds: selectedMatch.odds?.away }
-      ]
-    }
-    return [
-      { label: 'Home Win', value: 'home_win' },
-      { label: 'Draw', value: 'draw' },
-      { label: 'Away Win', value: 'away_win' }
-    ]
-  }, [selectedMatch])
-
-  const selectedPredictionLabel = useMemo(() => {
-    const hit = predictions.find((item) => item.value === formData.prediction)
-    return hit?.label || formData.prediction
-  }, [formData.prediction, predictions])
+  const predictions = [
+    'Home Win',
+    'Draw',
+    'Away Win',
+    'Over 2.5 Goals',
+    'Under 2.5 Goals',
+    'Both Teams to Score'
+  ]
 
   const calculatePotential = () => {
     return Math.round(formData.stake * formData.odds)
   }
 
+  const formatMatchMeta = (match) => {
+    if (!match) return 'Time TBD'
+    const rawDate = match.startTime || match.start_time || match.startDate || match.start_date
+    if (!rawDate) {
+      return `Time TBD • ${match.league || 'League'}`
+    }
+    const date = new Date(rawDate)
+    const dateLabel = Number.isNaN(date.getTime())
+      ? 'TBD'
+      : date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+    const timeLabel = String(rawDate).includes('T') && !Number.isNaN(date.getTime())
+      ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : 'TBD'
+    return `${dateLabel} • ${timeLabel} • ${match.league || 'League'}`
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
-    if (!walletConnected) {
-      toast.error('Connect your wallet to place predictions')
+
+    if (formData.stake < minStake) {
+      toast.error(`Minimum stake is ${minStake} points`)
       return
     }
+
     if (formData.stake > points) {
       toast.error('Insufficient points')
       return
     }
 
-    if (!formData.matchId) {
+    if (!selectedMatch) {
       toast.error('Please select a match')
       return
     }
 
-    if (!allowLive && selectedMatch?.status === 'live') {
-      toast.error('Live match predictions are disabled')
-      return
-    }
-
     const result = await makePrediction(
-      formData.matchId,
+      selectedMatch.id,
       formData.prediction,
-      formData.stake
+      formData.stake,
+      {
+        match: selectedMatch.name || `${selectedMatch.homeTeam} vs ${selectedMatch.awayTeam}`,
+        odds: formData.odds,
+        confidence: formData.confidence,
+        potential: calculatePotential()
+      }
     )
 
     if (result.success) {
@@ -117,7 +121,6 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
         animate={{ scale: 1, y: 0 }}
         className="bg-surface rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
       >
-        {/* Header */}
         <div className="p-6 border-b border-card">
           <div className="flex items-center justify-between">
             <div>
@@ -134,7 +137,6 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
             </button>
           </div>
 
-          {/* Progress Steps */}
           <div className="flex items-center justify-between mt-6">
             {[1, 2, 3].map((stepNum) => (
               <div key={stepNum} className="flex items-center">
@@ -153,7 +155,6 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
           </div>
         </div>
 
-        {/* Form Content */}
         <form onSubmit={handleSubmit} className="p-6">
           {step === 1 && (
             <div className="space-y-6">
@@ -179,23 +180,35 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
                   Quick Select
                 </label>
                 <div className="grid grid-cols-1 gap-2">
-                  {availableMatches.map((item) => (
+                  {filteredMatches.length === 0 && (
+                    <div className="p-4 rounded-xl bg-card text-text-secondary">
+                      No matches found.
+                    </div>
+                  )}
+                  {filteredMatches.map((match) => (
                     <button
-                      key={item.id}
+                      key={match.id || match.match_id || match.event_id}
                       type="button"
-                      onClick={() => setFormData({
-                        ...formData,
-                        match: `${item.homeTeam} vs ${item.awayTeam}`,
-                        matchId: item.id
-                      })}
+                      onClick={() => {
+                        setSelectedMatch(match)
+                        setFormData({
+                          ...formData,
+                          match: match.name || `${match.homeTeam} vs ${match.awayTeam}`,
+                          odds: match.odds?.home || match.odds_home || formData.odds
+                        })
+                      }}
                       className={`p-4 rounded-xl text-left transition-all ${
-                        formData.matchId === item.id
+                        formData.match === (match.name || `${match.homeTeam} vs ${match.awayTeam}`)
                           ? 'bg-primary text-white'
                           : 'bg-card hover:bg-hover'
                       }`}
                     >
-                      <div className="font-medium">{item.homeTeam} vs {item.awayTeam}</div>
-                      <div className="text-sm opacity-80">{item.league || 'League'} • {item.startTime || item.time || 'TBD'}</div>
+                      <div className="font-medium">
+                        {match.name || `${match.homeTeam} vs ${match.awayTeam}`}
+                      </div>
+                      <div className="text-sm opacity-80">
+                        {formatMatchMeta(match)}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -206,14 +219,16 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
           {step === 2 && (
             <div className="space-y-6">
               <h3 className="text-xl font-bold">Make Prediction</h3>
-              
+
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-2">
                   Selected Match
                 </label>
                 <div className="p-4 bg-card rounded-xl">
-                  <div className="font-bold">{formData.match}</div>
-                  <div className="text-sm text-text-secondary">{selectedMatch?.league || 'League'}</div>
+                  <div className="font-bold">{formData.match || 'Select a match'}</div>
+                  <div className="text-sm text-text-secondary">
+                    {formatMatchMeta(selectedMatch)}
+                  </div>
                 </div>
               </div>
 
@@ -223,25 +238,18 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
                     Prediction Type
                   </label>
                   <div className="space-y-2">
-                    {predictions.map((pred) => (
+                    {predictions.slice(0, 3).map((pred) => (
                       <button
-                        key={pred.value}
+                        key={pred}
                         type="button"
-                        onClick={() => setFormData({
-                          ...formData,
-                          prediction: pred.value,
-                          odds: pred.odds || formData.odds
-                        })}
+                        onClick={() => setFormData({ ...formData, prediction: pred })}
                         className={`w-full p-3 rounded-lg text-left transition-all ${
-                          formData.prediction === pred.value
+                          formData.prediction === pred
                             ? 'bg-primary text-white'
                             : 'bg-card hover:bg-hover'
                         }`}
                       >
-                        <div className="font-medium">{pred.label}</div>
-                        {pred.odds && (
-                          <div className="text-xs opacity-80">Odds: {pred.odds}</div>
-                        )}
+                        {pred}
                       </button>
                     ))}
                   </div>
@@ -292,8 +300,7 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
           {step === 3 && (
             <div className="space-y-6">
               <h3 className="text-xl font-bold">Confirm & Stake</h3>
-              
-              {/* Summary */}
+
               <div className="bg-card rounded-xl p-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -302,7 +309,7 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
                   </div>
                   <div>
                     <div className="text-sm text-text-secondary">Prediction</div>
-                    <div className="font-bold text-primary">{selectedPredictionLabel || 'Select prediction'}</div>
+                    <div className="font-bold text-primary">{formData.prediction}</div>
                   </div>
                   <div>
                     <div className="text-sm text-text-secondary">Odds</div>
@@ -315,7 +322,6 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
                 </div>
               </div>
 
-              {/* Stake Control */}
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <label className="text-sm font-medium text-text-secondary">
@@ -325,18 +331,30 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
                     Balance: <span className="font-bold text-primary">{points} PTS</span>
                   </span>
                 </div>
-                
+
                 <div className="space-y-4">
                   <input
                     type="range"
-                    min="10"
+                    min={minStake}
                     max={Math.min(points, 500)}
                     step="10"
                     value={formData.stake}
                     onChange={(e) => setFormData({ ...formData, stake: parseInt(e.target.value) })}
                     className="w-full"
                   />
-                  
+
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min={minStake}
+                      max={points}
+                      value={formData.stake}
+                      onChange={(e) => setFormData({ ...formData, stake: parseInt(e.target.value) || minStake })}
+                      className="input-field w-32"
+                    />
+                    <span className="text-sm text-text-secondary">PTS</span>
+                  </div>
+
                   <div className="flex justify-between">
                     {[10, 50, 100, 250, 500].map((amount) => (
                       <button
@@ -357,7 +375,6 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
                 </div>
               </div>
 
-              {/* Potential Return */}
               <div className="bg-gradient-to-r from-green-900/20 to-green-500/10 border border-green-500/30 rounded-xl p-6">
                 <div className="text-center">
                   <div className="text-sm text-text-secondary mb-2">Potential Return</div>
@@ -370,7 +387,6 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
                 </div>
               </div>
 
-              {/* Risk Warning */}
               <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
                 <div className="flex items-start space-x-3">
                   <Shield className="text-red-400 mt-0.5" size={20} />
@@ -385,7 +401,6 @@ const PredictionForm = ({ onClose, match = null, matches = [], allowLive = true,
             </div>
           )}
 
-          {/* Navigation Buttons */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-card">
             {step > 1 ? (
               <button

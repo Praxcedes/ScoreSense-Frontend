@@ -1,7 +1,10 @@
 import axios from 'axios'
 
+const RAW_BASE_URL = import.meta.env.VITE_API_URL || 'https://scoresense-africa-backend.onrender.com'
+const BASE_URL = import.meta.env.DEV ? '' : RAW_BASE_URL.replace(/\/api\/?$/, '')
+
 const COMMUNITY_API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://scoresense-africa-backend.onrender.com',
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   }

@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Bell, Shield, Globe, CreditCard, Eye, Moon, Download, Trash2, User, Lock } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import { toast } from 'react-hot-toast'
 
 const Settings = () => {
-  const { user, logout } = useAuth()
+  const { user, logout, updateProfile, updatePassword } = useAuth()
   const [activeTab, setActiveTab] = useState('general')
   const [notifications, setNotifications] = useState({
     email: true,
@@ -12,6 +13,34 @@ const Settings = () => {
     predictions: true,
     marketing: false
   })
+  const [generalSettings, setGeneralSettings] = useState({
+    language: 'English',
+    timeZone: 'East Africa Time (EAT)',
+    darkMode: false
+  })
+  const [privacySettings, setPrivacySettings] = useState({
+    profileVisibility: 'Public'
+  })
+  const [securityForm, setSecurityForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [saveState, setSaveState] = useState('idle')
+
+  useEffect(() => {
+    const sourceSettings = user?.settings
+
+    if (sourceSettings?.notifications) {
+      setNotifications(sourceSettings.notifications)
+    }
+    if (sourceSettings?.general) {
+      setGeneralSettings(sourceSettings.general)
+    }
+    if (sourceSettings?.privacy) {
+      setPrivacySettings(sourceSettings.privacy)
+    }
+  }, [user])
 
   const tabs = [
     { id: 'general', name: 'General', icon: <User size={18} /> },
@@ -23,6 +52,40 @@ const Settings = () => {
 
   const handleNotificationToggle = (key) => {
     setNotifications(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const handleSaveChanges = async () => {
+    setSaveState('saving')
+    const settingsPayload = {
+      general: generalSettings,
+      notifications,
+      privacy: privacySettings
+    }
+    const result = await updateProfile({ settings: settingsPayload })
+    if (result?.success) {
+      setSaveState('saved')
+      setTimeout(() => setSaveState('idle'), 1500)
+    } else {
+      setSaveState('idle')
+    }
+  }
+
+  const handlePasswordUpdate = async () => {
+    if (!securityForm.currentPassword || !securityForm.newPassword) {
+      toast.error('Enter your current and new password')
+      return
+    }
+    if (securityForm.newPassword !== securityForm.confirmPassword) {
+      toast.error('Passwords do not match')
+      return
+    }
+    const result = await updatePassword({
+      current_password: securityForm.currentPassword,
+      new_password: securityForm.newPassword
+    })
+    if (result?.success) {
+      setSecurityForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    }
   }
 
   return (
@@ -79,7 +142,11 @@ const Settings = () => {
                   <label className="block text-sm font-medium text-text-secondary mb-2">
                     Display Language
                   </label>
-                  <select className="input-field w-full">
+                  <select
+                    className="input-field w-full"
+                    value={generalSettings.language}
+                    onChange={(event) => setGeneralSettings((prev) => ({ ...prev, language: event.target.value }))}
+                  >
                     <option>English</option>
                     <option>Swahili</option>
                     <option>French</option>
@@ -90,7 +157,11 @@ const Settings = () => {
                   <label className="block text-sm font-medium text-text-secondary mb-2">
                     Time Zone
                   </label>
-                  <select className="input-field w-full">
+                  <select
+                    className="input-field w-full"
+                    value={generalSettings.timeZone}
+                    onChange={(event) => setGeneralSettings((prev) => ({ ...prev, timeZone: event.target.value }))}
+                  >
                     <option>East Africa Time (EAT)</option>
                     <option>UTC</option>
                     <option>GMT</option>
@@ -102,7 +173,11 @@ const Settings = () => {
                     <p className="font-medium">Dark Mode</p>
                     <p className="text-sm text-text-secondary">Use dark theme</p>
                   </div>
-                  <button className="p-2 hover:bg-hover rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setGeneralSettings((prev) => ({ ...prev, darkMode: !prev.darkMode }))}
+                    className="p-2 hover:bg-hover rounded-lg"
+                  >
                     <Moon size={20} />
                   </button>
                 </div>
@@ -144,24 +219,45 @@ const Settings = () => {
                   <label className="block text-sm font-medium text-text-secondary mb-2">
                     Current Password
                   </label>
-                  <input type="password" className="input-field w-full" />
+                  <input
+                    type="password"
+                    className="input-field w-full"
+                    value={securityForm.currentPassword}
+                    onChange={(event) => setSecurityForm((prev) => ({ ...prev, currentPassword: event.target.value }))}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-2">
                     New Password
                   </label>
-                  <input type="password" className="input-field w-full" />
+                  <input
+                    type="password"
+                    className="input-field w-full"
+                    value={securityForm.newPassword}
+                    onChange={(event) => setSecurityForm((prev) => ({ ...prev, newPassword: event.target.value }))}
+                  />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-2">
                     Confirm New Password
                   </label>
-                  <input type="password" className="input-field w-full" />
+                  <input
+                    type="password"
+                    className="input-field w-full"
+                    value={securityForm.confirmPassword}
+                    onChange={(event) => setSecurityForm((prev) => ({ ...prev, confirmPassword: event.target.value }))}
+                  />
                 </div>
 
-                <button className="btn-primary">Update Password</button>
+                <button
+                  type="button"
+                  onClick={handlePasswordUpdate}
+                  className="btn-primary"
+                >
+                  Update Password
+                </button>
               </div>
             )}
 
@@ -175,7 +271,11 @@ const Settings = () => {
                     <p className="font-medium">Profile Visibility</p>
                     <p className="text-sm text-text-secondary">Who can see your profile</p>
                   </div>
-                  <select className="input-field w-32">
+                  <select
+                    className="input-field w-32"
+                    value={privacySettings.profileVisibility}
+                    onChange={(event) => setPrivacySettings({ profileVisibility: event.target.value })}
+                  >
                     <option>Public</option>
                     <option>Private</option>
                     <option>Friends Only</option>
@@ -236,7 +336,14 @@ const Settings = () => {
 
           {/* Save Changes Button */}
           <div className="flex justify-end mt-6">
-            <button className="btn-primary">Save Changes</button>
+            <button
+              type="button"
+              onClick={handleSaveChanges}
+              className="btn-primary"
+              disabled={saveState === 'saving'}
+            >
+              {saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved' : 'Save Changes'}
+            </button>
           </div>
         </div>
       </div>

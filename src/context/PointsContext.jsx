@@ -8,19 +8,14 @@ export const PointsContext = createContext({})
 
 export const usePoints = () => useContext(PointsContext)
 
+const normalizeArray = (value) => (Array.isArray(value) ? value : [])
+
 export const PointsProvider = ({ children }) => {
   const [points, setPoints] = useState(0)
   const [celoBalance, setCeloBalance] = useState(0)
   const [transactions, setTransactions] = useState([])
   const [leaderboard, setLeaderboard] = useState([])
   const [predictions, setPredictions] = useState([])
-  const [predictionsStats, setPredictionsStats] = useState({
-    total_predictions: 0,
-    active_predictions: 0,
-    won_predictions: 0,
-    lost_predictions: 0,
-    win_rate: 0
-  })
   const [loading, setLoading] = useState(false)
   const [walletConnected, setWalletConnected] = useState(false)
   const [walletAddress, setWalletAddress] = useState('')
@@ -31,31 +26,25 @@ export const PointsProvider = ({ children }) => {
   const send = webSocket?.send || (() => {})
   const isConnected = webSocket?.isConnected || false
 
-  // Initialize wallet connection and blockchain data
   useEffect(() => {
     const initBlockchainData = async () => {
       const token = localStorage.getItem('accessToken')
       if (!token) return
 
-      // Check wallet connection
       const isWalletConnected = walletService.getIsConnected()
       setWalletConnected(isWalletConnected)
-      
+
       if (isWalletConnected) {
         const address = walletService.getAddress()
         setWalletAddress(address)
-        if (address) {
-          await fetchBlockchainBalances(address)
-        }
+        await fetchBlockchainBalances(address)
       }
 
-      // Fetch traditional points data
       await fetchPointsData()
     }
 
     initBlockchainData()
 
-    // Listen for wallet events
     const handleWalletConnected = () => {
       setWalletConnected(true)
       const address = walletService.getAddress()
@@ -84,7 +73,7 @@ export const PointsProvider = ({ children }) => {
     subscribe('points_update', (data) => {
       setPoints(data.balance)
       if (data.transaction) {
-        setTransactions(prev => [data.transaction, ...prev])
+        setTransactions((prev) => [data.transaction, ...prev])
       }
     })
 
@@ -99,9 +88,11 @@ export const PointsProvider = ({ children }) => {
     })
 
     subscribe('prediction_settled', (data) => {
-      setPredictions(prev => prev.map(p =>
-        p.id === data.predictionId ? { ...p, ...data } : p
-      ))
+      setPredictions((prev) =>
+        prev.map((prediction) =>
+          prediction.id === data.predictionId ? { ...prediction, ...data } : prediction
+        )
+      )
     })
 
     return () => {
@@ -110,7 +101,7 @@ export const PointsProvider = ({ children }) => {
       unsubscribe('leaderboard_update')
       unsubscribe('prediction_settled')
     }
-  }, [isConnected, walletAddress])
+  }, [isConnected, walletAddress, subscribe, unsubscribe])
 
   const fetchPointsData = async () => {
     try {
@@ -118,25 +109,17 @@ export const PointsProvider = ({ children }) => {
         pointsService.getPoints().catch(() => ({ balance: points })),
         pointsService.getTransactions().catch(() => []),
         pointsService.getLeaderboard().catch(() => []),
-        pointsService.getPredictions().catch(() => ({ predictions: [], stats: null }))
+        pointsService.getPredictions().catch(() => [])
       ])
+
       setPoints(pointsData.balance || pointsData.points_balance || 0)
-      setTransactions(transactionsData)
-      setLeaderboard(leaderboardData)
-      if (Array.isArray(predictionsData)) {
-        setPredictions(predictionsData)
-      } else {
-        setPredictions(predictionsData.predictions || [])
-        if (predictionsData.stats) {
-          setPredictionsStats({
-            total_predictions: predictionsData.stats.total_predictions || 0,
-            active_predictions: predictionsData.stats.active_predictions || 0,
-            won_predictions: predictionsData.stats.won_predictions || 0,
-            lost_predictions: predictionsData.stats.lost_predictions || 0,
-            win_rate: predictionsData.stats.win_rate || 0
-          })
-        }
-      }
+      setTransactions(normalizeArray(transactionsData))
+      setLeaderboard(normalizeArray(leaderboardData))
+
+      const normalizedPredictions = Array.isArray(predictionsData)
+        ? predictionsData
+        : normalizeArray(predictionsData?.recent_predictions || predictionsData?.predictions)
+      setPredictions(normalizedPredictions)
     } catch (error) {
       console.error('Failed to fetch points data:', error)
     }
@@ -144,20 +127,20 @@ export const PointsProvider = ({ children }) => {
 
   const fetchBlockchainBalances = async (address) => {
     if (!address) return
-    const token = localStorage.getItem('accessToken')
-    if (!token) return
-    
+
     try {
-      // Get blockchain balances from backend
       const response = await api.get('/blockchain/balance')
       if (response && response.points_balance) {
-        // Convert blockchain points to display format
-        setPoints(prev => Math.max(prev, response.points_balance))
+        setPoints((prev) => Math.max(prev, response.points_balance))
       }
       if (response && response.celo_balance) {
         setCeloBalance(parseFloat(response.celo_balance))
       }
     } catch (error) {
+      const message = error?.error || error?.message || ''
+      if (message.toLowerCase().includes('wallet')) {
+        return
+      }
       console.error('Failed to fetch blockchain balances:', error)
     }
   }
@@ -170,14 +153,10 @@ export const PointsProvider = ({ children }) => {
         setWalletConnected(true)
         setWalletAddress(result.address)
         await fetchBlockchainBalances(result.address)
-        
-        // Register wallet with backend
         await registerWalletWithBackend(result.address)
-        
         return { success: true, address: result.address }
-      } else {
-        return { success: false, error: result.error }
       }
+      return { success: false, error: result.error }
     } catch (error) {
       return { success: false, error: error.message }
     } finally {
@@ -190,18 +169,14 @@ export const PointsProvider = ({ children }) => {
       const token = localStorage.getItem('accessToken')
       if (!token) return
 
-      // Sign message for verification
       const message = `Connect wallet to ScoreSense: ${Date.now()}`
       const signature = await walletService.signMessage(message)
 
-      // Send to backend
       await api.post('/blockchain/connect', {
         wallet_address: address,
         signature: signature,
         message: message
       })
-
-      console.log('Wallet registered with backend')
     } catch (error) {
       console.error('Error registering wallet:', error)
     }
@@ -218,9 +193,28 @@ export const PointsProvider = ({ children }) => {
   }
 
   const makePrediction = async (matchId, prediction, stake) => {
+    if (!walletConnected) {
+      return { success: false, error: 'Connect your wallet to make predictions.' }
+    }
+    if (stake < 10) {
+      return { success: false, error: 'Minimum stake is 10 points.' }
+    }
+
     try {
       const result = await pointsService.makePrediction(matchId, prediction, stake)
       setPoints(result.balance)
+      setPredictions((prev) => [
+        {
+          id: `local_${Date.now()}`,
+          match_id: matchId,
+          prediction,
+          amount: stake,
+          potential_payout: stake,
+          status: 'pending',
+          created_at: new Date().toISOString()
+        },
+        ...prev
+      ])
       return { success: true, balance: result.balance }
     } catch (error) {
       return { success: false, error: error.message }
@@ -239,7 +233,6 @@ export const PointsProvider = ({ children }) => {
 
   const transferTokens = async (toAddress, amount) => {
     try {
-      // This would call a backend endpoint that initiates blockchain transaction
       const response = await api.post('/blockchain/transfer', {
         to_address: toAddress,
         amount: amount
@@ -256,7 +249,6 @@ export const PointsProvider = ({ children }) => {
     transactions,
     leaderboard,
     predictions,
-    predictionsStats,
     loading,
     walletConnected,
     walletAddress,

@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { UserPlus, User, Mail, Lock, Eye, EyeOff, Trophy } from 'lucide-react'
+import { UserPlus, User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import appLogo from '../../assets/ScoreSense Logo.png'
 
 const Register = () => {
   const { register } = useAuth()
@@ -17,41 +18,18 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [fieldErrors, setFieldErrors] = useState({})
-
-  const parseFieldErrors = (message) => {
-    if (!message) return {}
-    const nextErrors = {}
-    if (message.startsWith('Missing required field:')) {
-      const field = message.split(':')[1]?.trim()
-      if (field) {
-        nextErrors[field] = message
-      }
-    }
-    if (message.toLowerCase().includes('username')) {
-      nextErrors.username = message
-    }
-    if (message.toLowerCase().includes('email')) {
-      nextErrors.email = message
-    }
-    if (message.toLowerCase().includes('password')) {
-      nextErrors.password = message
-    }
-    return nextErrors
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    setFieldErrors({})
 
     if (formData.password !== formData.confirmPassword) {
-      setFieldErrors({ confirmPassword: 'Passwords do not match' })
+      setError('Passwords do not match')
       return
     }
 
     if (formData.password.length < 8) {
-      setFieldErrors({ password: 'Password must be at least 8 characters long' })
+      setError('Password must be at least 8 characters')
       return
     }
 
@@ -67,22 +45,10 @@ const Register = () => {
       if (result.success) {
         navigate('/dashboard')
       } else {
-        const message = result.error || 'Registration failed'
-        const parsed = parseFieldErrors(message)
-        if (Object.keys(parsed).length) {
-          setFieldErrors(parsed)
-        } else {
-          setError(message)
-        }
+        setError(result.error || 'Registration failed')
       }
     } catch (err) {
-      const message = err?.response?.data?.error || err.message || 'An unexpected error occurred'
-      const parsed = parseFieldErrors(message)
-      if (Object.keys(parsed).length) {
-        setFieldErrors(parsed)
-      } else {
-        setError(message)
-      }
+      setError('An unexpected error occurred')
     } finally {
       setLoading(false)
     }
@@ -97,8 +63,8 @@ const Register = () => {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-green-400 rounded-2xl mb-4">
-            <Trophy className="text-white" size={32} />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-card border border-border rounded-2xl mb-4 overflow-hidden">
+            <img src={appLogo} alt="ScoreSense logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-primary bg-clip-text text-transparent">
             Join ScoreSense Africa
@@ -135,9 +101,6 @@ const Register = () => {
                   required
                 />
               </div>
-              {fieldErrors.username && (
-                <p className="text-xs text-red-400 mt-2">{fieldErrors.username}</p>
-              )}
             </div>
 
             <div>
@@ -155,9 +118,6 @@ const Register = () => {
                   required
                 />
               </div>
-              {fieldErrors.email && (
-                <p className="text-xs text-red-400 mt-2">{fieldErrors.email}</p>
-              )}
             </div>
 
             <div>
@@ -183,9 +143,6 @@ const Register = () => {
                 </button>
               </div>
               <p className="text-xs text-text-secondary mt-2">Minimum 8 characters</p>
-              {fieldErrors.password && (
-                <p className="text-xs text-red-400 mt-2">{fieldErrors.password}</p>
-              )}
             </div>
 
             <div>
@@ -210,9 +167,6 @@ const Register = () => {
                   {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              {fieldErrors.confirmPassword && (
-                <p className="text-xs text-red-400 mt-2">{fieldErrors.confirmPassword}</p>
-              )}
             </div>
 
             <label className="flex items-start">

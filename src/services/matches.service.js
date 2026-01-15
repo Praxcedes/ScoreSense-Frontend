@@ -1,44 +1,61 @@
 import api from './api'
 
-const mapMatch = (match) => {
-  if (!match) return match
+const normalizeStatus = (status) => {
+  if (!status) return status
+  const normalized = String(status).toLowerCase()
+  if (normalized === 'finished') return 'completed'
+  if (normalized === 'canceled') return 'cancelled'
+  return normalized
+}
 
+const normalizeMatch = (match = {}) => {
+  const odds = match.odds || {}
+  const rawStartTime = match.start_time || match.startTime
+  const rawStartDate = match.start_date || match.startDate
   const homeTeam = match.homeTeam || match.home_team || match.home
   const awayTeam = match.awayTeam || match.away_team || match.away
-  const homeScore = match.homeScore ?? match.home_score ?? match.home_team_score ?? match.current_score?.home ?? null
-  const awayScore = match.awayScore ?? match.away_score ?? match.away_team_score ?? match.current_score?.away ?? null
-  const startTime = match.startTime || match.start_time || match.start_date || match.startDate || null
-  const status = match.status || match.match_status || match.matchStatus || 'upcoming'
 
   return {
     ...match,
-    id: match.id || match.match_id || match.event_id,
+    id: match.id || match.match_id || match.event_id || match.eventId,
+    name: match.name || (homeTeam && awayTeam ? `${homeTeam} vs ${awayTeam}` : undefined),
+    league: match.league || match.league_name || match.leagueName,
+    status: normalizeStatus(match.status || match.match_status || match.matchStatus),
+    startTime: rawStartTime || rawStartDate || match.startTime || match.start_date || match.startDate,
+    startDate: rawStartDate || rawStartTime || match.start_date || match.startDate,
     homeTeam,
     awayTeam,
-    homeScore,
-    awayScore,
-    startTime,
-    league: match.league || match.league_name,
-    venue: match.venue || match.stadium || match.location,
-    sport: match.sport || match.sport_name,
-    status,
-    odds: match.odds || {
-      home: match.odds_home || match.odds?.home_win,
-      draw: match.odds_draw || match.odds?.draw,
-      away: match.odds_away || match.odds?.away_win
-    },
-    homeLogo: match.homeLogo || match.home_logo || match.home_team_logo,
-    awayLogo: match.awayLogo || match.away_logo || match.away_team_logo
+    homeLogo: match.homeLogo || match.home_logo || match.home_badge,
+    awayLogo: match.awayLogo || match.away_logo || match.away_badge,
+    homeScore: match.homeScore ?? match.home_score ?? match.home_team_score,
+    awayScore: match.awayScore ?? match.away_score ?? match.away_team_score,
+    venue: match.venue || match.stadium,
+    sport: match.sport || match.sport_name || match.category,
+    time: match.time || match.match_time || match.minute || rawStartTime || match.start_time,
+    homePossession: match.homePossession ?? match.home_possession,
+    awayPossession: match.awayPossession ?? match.away_possession,
+    odds: {
+      home: odds.home ?? odds.home_win ?? match.odds_home,
+      draw: odds.draw ?? match.odds_draw,
+      away: odds.away ?? odds.away_win ?? match.odds_away
+    }
   }
 }
 
-const normalizeResponse = (response) => {
-  const matches = response?.matches || response?.data || response?.results || []
+const normalizeMatchesResponse = (response) => {
+  if (!response) return response
+
+  const rawMatches = Array.isArray(response.matches)
+    ? response.matches
+    : Array.isArray(response.data)
+      ? response.data
+      : []
+
+  if (!Array.isArray(rawMatches)) return response
+
   return {
     ...response,
-    success: response?.success ?? true,
-    matches: Array.isArray(matches) ? matches.map(mapMatch) : [],
-    count: response?.count ?? (Array.isArray(matches) ? matches.length : 0)
+    matches: rawMatches.map(normalizeMatch)
   }
 }
 
@@ -46,7 +63,7 @@ export const matchesService = {
   async getLiveMatches() {
     try {
       const response = await api.get('/matches/live')
-      return normalizeResponse(response)
+      return normalizeMatchesResponse(response) || { success: false, matches: [], count: 0 }
     } catch (error) {
       console.error('Error fetching live matches:', error)
       return { 
@@ -66,7 +83,7 @@ export const matchesService = {
       if (league) params.league = league
 
       const response = await api.get('/matches/upcoming', { params })
-      return normalizeResponse(response)
+      return normalizeMatchesResponse(response) || { success: false, matches: [], count: 0 }
     } catch (error) {
       console.error('Error fetching upcoming matches:', error)
       return { 
@@ -82,8 +99,10 @@ export const matchesService = {
   async getMatchDetails(matchId) {
     try {
       const response = await api.get(`/matches/${matchId}`)
-      const mapped = response?.match ? mapMatch(response.match) : mapMatch(response)
-      return response || { success: false, match: mapped || null, error: 'Match not found' }
+      if (response?.match) {
+        return { ...response, match: normalizeMatch(response.match) }
+      }
+      return response || { success: false, match: null, error: 'Match not found' }
     } catch (error) {
       console.error('Error fetching match details:', error)
       return { 
@@ -99,54 +118,15 @@ export const matchesService = {
       const response = await api.get('/matches/search', { 
         params: { q: query, limit } 
       })
-      const hasMatchFields = response && typeof response === 'object' &&
-        ('matches' in response || 'data' in response || 'results' in response)
-
-      if (!hasMatchFields || response?.success === false || response?.error) {
-        throw new Error(response?.error || 'Search endpoint unavailable')
-      }
-      return normalizeResponse(response)
+      return normalizeMatchesResponse(response) || { success: false, matches: [], count: 0 }
     } catch (error) {
       console.error('Error searching matches:', error)
-      const normalizedQuery = query?.toLowerCase()?.trim()
-      if (!normalizedQuery) {
-        return { success: true, matches: [], count: 0 }
-      }
-
-      try {
-        const [upcoming, live] = await Promise.all([
-          api.get('/matches/upcoming', { params: { limit: Math.max(limit, 20) } }),
-          api.get('/matches/live')
-        ])
-
-        const upcomingMatches = upcoming?.matches || upcoming?.data || []
-        const liveMatches = live?.matches || live?.data || []
-        const combined = [...liveMatches, ...upcomingMatches].map(mapMatch)
-
-        const filtered = combined.filter((match) => {
-          const haystack = [
-            match?.name,
-            match?.homeTeam,
-            match?.awayTeam,
-            match?.league,
-            match?.sport
-          ]
-            .filter(Boolean)
-            .join(' ')
-            .toLowerCase()
-
-          return haystack.includes(normalizedQuery)
-        }).slice(0, limit)
-
-        return { success: true, matches: filtered, count: filtered.length, source: 'fallback' }
-      } catch (fallbackError) {
-        return { 
-          success: false, 
-          matches: [], 
-          count: 0, 
-          error: error.message || 'Search failed',
-          message: `No matches found for '${query}'`
-        }
+      return { 
+        success: false, 
+        matches: [], 
+        count: 0, 
+        error: error.message || 'Search failed',
+        message: `No matches found for '${query}'`
       }
     }
   },
@@ -164,15 +144,17 @@ export const matchesService = {
   async getMockMatches(limit = 10) {
     try {
       const response = await api.get('/matches/mock', { params: { limit } })
-      return normalizeResponse(response)
+      return normalizeMatchesResponse(response) || { success: false, matches: [], count: 0 }
     } catch (error) {
       console.error('Error fetching mock matches:', error)
       return { success: false, matches: [], count: 0, error: error.message }
     }
   },
 
+  // Fallback methods if API endpoints don't exist
   async getFeaturedMatches() {
     try {
+      // Try to get some upcoming matches as featured
       return await this.getUpcomingMatches(5)
     } catch (error) {
       return { success: false, matches: [], count: 0, error: error.message }
@@ -181,6 +163,7 @@ export const matchesService = {
 
   async getMatchStats(matchId) {
     try {
+      // For now, return basic stats
       const match = await this.getMatchDetails(matchId)
       if (match.success) {
         return {

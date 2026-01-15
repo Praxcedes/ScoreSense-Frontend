@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { LogIn, Mail, Lock, Eye, EyeOff, Trophy } from 'lucide-react'
+import { LogIn, Mail, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import appLogo from '../../assets/ScoreSense Logo.png'
 
 const Login = () => {
   const { login } = useAuth()
@@ -41,10 +42,9 @@ const Login = () => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-green-400 rounded-2xl mb-4">
-            <Trophy className="text-white" size={32} />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-card border border-border rounded-2xl mb-4 overflow-hidden">
+            <img src={appLogo} alt="ScoreSense logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-primary bg-clip-text text-transparent">
             ScoreSense Africa
@@ -52,7 +52,6 @@ const Login = () => {
           <p className="text-text-secondary mt-2">Sports Analytics & Prediction Platform</p>
         </div>
 
-        {/* Login Card */}
         <div className="card p-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold">Welcome Back</h2>
@@ -143,20 +142,24 @@ const Login = () => {
                 Sign up
               </Link>
             </p>
-            <p className="text-text-secondary mt-3">
-              Admin access?{' '}
-              <Link to="/admin/login" className="text-primary hover:text-primary/80 font-medium">
-                Sign in as admin
-              </Link>
-            </p>
+          </div>
+
+          <div className="mt-4 flex items-center justify-center text-sm text-text-secondary space-x-3">
+            <ShieldCheck size={16} />
+            <Link to="/admin/login" className="text-primary hover:text-primary/80 font-medium">
+              Admin login
+            </Link>
+            <span>•</span>
+            <Link to="/admin/request" className="text-primary hover:text-primary/80 font-medium">
+              Request admin access
+            </Link>
           </div>
         </div>
 
-        {/* Features */}
         <div className="grid grid-cols-3 gap-4 mt-8">
           <div className="text-center">
             <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center mx-auto mb-2">
-              <Trophy className="text-primary" size={20} />
+              <img src={appLogo} alt="ScoreSense logo" className="w-5 h-5 object-contain" />
             </div>
             <p className="text-xs text-text-secondary">Live Predictions</p>
           </div>

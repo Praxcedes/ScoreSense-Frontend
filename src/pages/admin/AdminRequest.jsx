@@ -1,37 +1,35 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Shield, Mail, Lock, KeyRound } from 'lucide-react'
+import { UserPlus, User, Mail, Lock, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 
-const AdminLogin = () => {
-  const { loginAdmin } = useAuth()
+const AdminRequest = () => {
+  const { requestAdminAccess } = useAuth()
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
+    username: '',
     email: '',
-    password: '',
-    adminSecret: ''
+    password: ''
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
     setLoading(true)
 
-    const result = await loginAdmin(formData)
+    const result = await requestAdminAccess(formData)
     setLoading(false)
 
     if (result.success) {
-      navigate('/admin')
-      return
-    }
-
-    if (result.status === 403) {
-      setError(result.error || 'Awaiting approval from a superadmin.')
+      setSuccess('Admin request submitted. Awaiting superadmin approval.')
+      setTimeout(() => navigate('/admin/login'), 1500)
     } else {
-      setError(result.error || 'Admin login failed')
+      setError(result.error || 'Admin request failed')
     }
   }
 
@@ -45,11 +43,11 @@ const AdminLogin = () => {
         <div className="card p-8">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-green-400 rounded-2xl mb-4">
-              <Shield className="text-white" size={32} />
+              <ShieldCheck className="text-white" size={32} />
             </div>
-            <h1 className="text-2xl font-bold">Admin Login</h1>
+            <h1 className="text-2xl font-bold">Request Admin Access</h1>
             <p className="text-text-secondary mt-2">
-              Access the admin console
+              Submit a request to become an admin. Superadmin approval is required.
             </p>
           </div>
 
@@ -59,7 +57,30 @@ const AdminLogin = () => {
             </div>
           )}
 
+          {success && (
+            <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl text-green-400 text-sm">
+              {success}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                Username
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary" size={20} />
+                <input
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  className="input-field w-full pl-10"
+                  placeholder="Choose a username"
+                  required
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-2">
                 Email Address
@@ -71,7 +92,7 @@ const AdminLogin = () => {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="input-field w-full pl-10"
-                  placeholder="admin@example.com"
+                  placeholder="you@example.com"
                   required
                 />
               </div>
@@ -92,25 +113,7 @@ const AdminLogin = () => {
                   required
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">
-                Admin Secret
-              </label>
-              <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary" size={20} />
-                <input
-                  type="password"
-                  value={formData.adminSecret}
-                  onChange={(e) => setFormData({ ...formData, adminSecret: e.target.value })}
-                  className="input-field w-full pl-10"
-                  placeholder="Enter admin secret"
-                />
-              </div>
-              <p className="text-xs text-text-secondary mt-2">
-                Required for superadmin login.
-              </p>
+              <p className="text-xs text-text-secondary mt-2">Minimum 8 characters</p>
             </div>
 
             <button
@@ -121,21 +124,21 @@ const AdminLogin = () => {
               {loading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span>Signing in...</span>
+                  <span>Submitting...</span>
                 </>
               ) : (
                 <>
-                  <Shield size={20} />
-                  <span>Sign In</span>
+                  <UserPlus size={20} />
+                  <span>Submit Request</span>
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-8 text-center text-sm text-text-secondary">
-            Need access?{' '}
-            <Link to="/admin/request" className="text-primary hover:text-primary/80 font-medium">
-              Request admin access
+          <div className="mt-6 text-center text-sm text-text-secondary">
+            Already approved?{' '}
+            <Link to="/admin/login" className="text-primary hover:text-primary/80 font-medium">
+              Go to admin login
             </Link>
           </div>
         </div>
@@ -144,4 +147,4 @@ const AdminLogin = () => {
   )
 }
 
-export default AdminLogin
+export default AdminRequest
