@@ -37,7 +37,12 @@ import AdminRequests from '../pages/admin/AdminRequests'
 
 const App = () => {
   return (
-    <Router>
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
       <WebSocketProvider>
         <AuthProvider>
           <PointsProvider>

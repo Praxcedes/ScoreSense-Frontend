@@ -28,19 +28,20 @@ export const PointsProvider = ({ children }) => {
 
   useEffect(() => {
     const initBlockchainData = async () => {
-      const token = localStorage.getItem('accessToken')
-      if (!token) return
-
       const isWalletConnected = walletService.getIsConnected()
       setWalletConnected(isWalletConnected)
 
       if (isWalletConnected) {
         const address = walletService.getAddress()
         setWalletAddress(address)
+        await registerWalletWithBackend(address)
         await fetchBlockchainBalances(address)
       }
 
-      await fetchPointsData()
+      const token = localStorage.getItem('accessToken')
+      if (token) {
+        await fetchPointsData()
+      }
     }
 
     initBlockchainData()
@@ -49,7 +50,9 @@ export const PointsProvider = ({ children }) => {
       setWalletConnected(true)
       const address = walletService.getAddress()
       setWalletAddress(address)
-      fetchBlockchainBalances(address)
+      registerWalletWithBackend(address).then(() => {
+        fetchBlockchainBalances(address)
+      })
     }
 
     const handleWalletDisconnected = () => {
@@ -129,7 +132,9 @@ export const PointsProvider = ({ children }) => {
     if (!address) return
 
     try {
-      const response = await api.get('/blockchain/balance')
+      const response = await api.get('/blockchain/balance', {
+        params: { wallet_address: address }
+      })
       if (response && response.points_balance) {
         setPoints((prev) => Math.max(prev, response.points_balance))
       }
@@ -164,10 +169,25 @@ export const PointsProvider = ({ children }) => {
     }
   }
 
+  const disconnectWallet = async () => {
+    try {
+      if (typeof walletService.disconnectWallet === 'function') {
+        await walletService.disconnectWallet()
+      }
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error)
+    } finally {
+      setWalletConnected(false)
+      setWalletAddress('')
+      setCeloBalance(0)
+    }
+  }
+
   const registerWalletWithBackend = async (address) => {
     try {
       const token = localStorage.getItem('accessToken')
       if (!token) return
+      if (!address || !walletService.getIsConnected()) return
 
       const message = `Connect wallet to ScoreSense: ${Date.now()}`
       const signature = await walletService.signMessage(message)
@@ -186,6 +206,7 @@ export const PointsProvider = ({ children }) => {
     try {
       const newBalance = await pointsService.addPoints(amount, source)
       setPoints(newBalance.balance || newBalance)
+      await fetchPointsData()
       return { success: true, balance: newBalance.balance || newBalance }
     } catch (error) {
       return { success: false, error: error.message }
@@ -202,7 +223,10 @@ export const PointsProvider = ({ children }) => {
 
     try {
       const result = await pointsService.makePrediction(matchId, prediction, stake)
-      setPoints(result.balance)
+      if (result?.balance !== undefined) {
+        setPoints(result.balance)
+      }
+      await fetchPointsData()
       setPredictions((prev) => [
         {
           id: `local_${Date.now()}`,
@@ -224,7 +248,10 @@ export const PointsProvider = ({ children }) => {
   const claimBonus = async (bonusType) => {
     try {
       const result = await pointsService.claimBonus(bonusType)
-      setPoints(result.balance)
+      if (result?.balance !== undefined) {
+        setPoints(result.balance)
+      }
+      await fetchPointsData()
       return { success: true, balance: result.balance }
     } catch (error) {
       return { success: false, error: error.message }
@@ -237,6 +264,7 @@ export const PointsProvider = ({ children }) => {
         to_address: toAddress,
         amount: amount
       })
+      await fetchPointsData()
       return { success: true, transactionHash: response.transaction_hash }
     } catch (error) {
       return { success: false, error: error.message }
@@ -253,6 +281,8 @@ export const PointsProvider = ({ children }) => {
     walletConnected,
     walletAddress,
     connectWallet,
+    disconnectWallet,
+    disconnectWallet,
     addPoints,
     makePrediction,
     claimBonus,

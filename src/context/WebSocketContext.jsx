@@ -42,11 +42,14 @@ export const WebSocketProvider = ({ children }) => {
 
   const connectWebSocket = () => {
     const token = localStorage.getItem('scoresense_token')
-    const wsUrl = import.meta.env.DEV
-      ? window.location.origin
-      : (import.meta.env.VITE_WS_URL || 'wss://api.scoresense.africa')
+    const wsUrl = import.meta.env.VITE_SOCKET_URL
+      || import.meta.env.VITE_WS_URL
+      || (import.meta.env.DEV
+        ? 'http://localhost:10000'
+        : 'https://scoresense-africa-backend.onrender.com')
     
     socketRef.current = io(wsUrl, {
+      path: '/socket.io',
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
