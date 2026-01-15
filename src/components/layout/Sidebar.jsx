@@ -18,6 +18,7 @@ import {
   Award
 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import appLogo from '../../assets/ScoreSense Logo.png'
 
 const Sidebar = () => {
   const { user, logout } = useAuth()
@@ -45,8 +46,8 @@ const Sidebar = () => {
       {/* Logo */}
       <div className="p-6 border-b border-card">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary to-green-400 rounded-xl flex items-center justify-center">
-            <Trophy className="text-white" size={24} />
+          <div className="w-10 h-10 rounded-xl bg-card border border-border overflow-hidden flex items-center justify-center">
+            <img src={appLogo} alt="ScoreSense logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-white to-primary/80 bg-clip-text text-transparent">
@@ -135,4 +136,5 @@ const Sidebar = () => {
 }
 
 export default Sidebar
+
 

@@ -1,7 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react'
 import { matchesService } from '../services/matches.service'
 
-// Create context with a safe default value
 const defaultContextValue = {
   liveMatches: [],
   upcomingMatches: [],
@@ -31,38 +30,33 @@ export const MatchesProvider = ({ children }) => {
     try {
       setLoading(true)
       setError(null)
-      
-      console.log("Fetching matches...")
-      
+
       const [liveResponse, upcomingResponse, featuredResponse] = await Promise.all([
         matchesService.getLiveMatches(),
-        matchesService.getUpcomingMatches(20),
+        matchesService.getUpcomingMatches(5, null, 4328),
         matchesService.getFeaturedMatches()
       ])
-      
-      console.log("Matches fetched successfully")
-      
+
       if (liveResponse?.success) {
         setLiveMatches(liveResponse.matches || [])
       } else {
         console.warn('Failed to load live matches:', liveResponse?.error)
         setLiveMatches([])
       }
-      
+
       if (upcomingResponse?.success) {
         setUpcomingMatches(upcomingResponse.matches || [])
       } else {
         console.warn('Failed to load upcoming matches:', upcomingResponse?.error)
         setUpcomingMatches([])
       }
-      
+
       if (featuredResponse?.success) {
         setFeaturedMatches(featuredResponse.matches || [])
       } else {
         console.warn('Failed to load featured matches:', featuredResponse?.error)
         setFeaturedMatches([])
       }
-      
     } catch (error) {
       console.error('Failed to fetch matches:', error)
       setError('Failed to load matches. Please try again.')
@@ -80,7 +74,7 @@ export const MatchesProvider = ({ children }) => {
 
   const getMatchById = (id) => {
     const allMatches = [...liveMatches, ...upcomingMatches, ...featuredMatches]
-    return allMatches.find(match => match.id === id)
+    return allMatches.find((match) => match.id === id)
   }
 
   const searchMatches = async (query) => {

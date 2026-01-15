@@ -14,6 +14,7 @@ const Points = () => {
     walletConnected,
     walletAddress,
     connectWallet,
+    disconnectWallet,
     fetchBlockchainBalances
   } = usePoints()
 
@@ -67,6 +68,11 @@ const Points = () => {
     } else {
       toast.error(result.error || 'Failed to connect wallet')
     }
+  }
+
+  const handleDisconnectWallet = async () => {
+    await disconnectWallet()
+    toast.success('Wallet disconnected')
   }
 
   const copyAddress = () => {
@@ -163,6 +169,12 @@ const Points = () => {
                       <span className="text-white font-semibold">{celoBalance.toFixed(4)}</span>
                     </div>
                   )}
+                  <button
+                    onClick={handleDisconnectWallet}
+                    className="mt-3 w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium py-2 px-4 rounded-lg transition-all"
+                  >
+                    Disconnect Wallet
+                  </button>
                 </div>
               ) : (
                 <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">

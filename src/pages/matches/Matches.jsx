@@ -80,6 +80,32 @@ const Matches = () => {
     )
   }
 
+  const formatMatchTime = (match) => {
+    const rawDate = match.startTime || match.start_time || match.startDate || match.start_date
+    if (!rawDate) return 'TBD'
+    const date = new Date(rawDate)
+    if (Number.isNaN(date.getTime())) return 'TBD'
+    return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+
+  const getStatusText = (status) => {
+    if (!status) return 'Upcoming'
+    const normalized = String(status).toLowerCase()
+    if (normalized === 'completed' || normalized === 'ended' || normalized === 'finished') return 'Ended'
+    if (normalized === 'cancelled' || normalized === 'canceled') return 'Cancelled'
+    return normalized
+  }
+
+  const getStatusClass = (status) => {
+    const normalized = String(status || '').toLowerCase()
+    if (normalized === 'live') return 'bg-red-500/10 text-red-400'
+    if (normalized === 'completed' || normalized === 'ended' || normalized === 'finished') {
+      return 'bg-green-500/10 text-green-400'
+    }
+    if (normalized === 'cancelled' || normalized === 'canceled') return 'bg-red-500/10 text-red-400'
+    return 'bg-blue-500/10 text-blue-400'
+  }
+
   if (loading && !refreshing) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -197,12 +223,8 @@ const Matches = () => {
                     </div>
                     <span className="text-sm font-medium">{match.sport || 'Football'}</span>
                   </div>
-                  <div className={`px-2 py-1 rounded text-xs font-medium ${
-                    match.status === 'live' ? 'bg-red-500/10 text-red-400' :
-                    match.status === 'finished' ? 'bg-green-500/10 text-green-400' :
-                    'bg-blue-500/10 text-blue-400'
-                  }`}>
-                    {match.status || 'upcoming'}
+                  <div className={`px-2 py-1 rounded text-xs font-medium ${getStatusClass(match.status)}`}>
+                    {getStatusText(match.status)}
                   </div>
                 </div>
 
@@ -210,7 +232,7 @@ const Matches = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      {renderTeamBadge(match.homeLogo, match.homeTeam?.charAt(0) || 'H')}
+                      {renderTeamBadge(match.homeLogo || match.home_logo, match.homeTeam?.charAt(0) || 'H')}
                       <div>
                         <h4 className="font-semibold">{match.homeTeam || 'Home Team'}</h4>
                         <p className="text-xs text-text-secondary">Home</p>
@@ -226,7 +248,7 @@ const Matches = () => {
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      {renderTeamBadge(match.awayLogo, match.awayTeam?.charAt(0) || 'A')}
+                      {renderTeamBadge(match.awayLogo || match.away_logo, match.awayTeam?.charAt(0) || 'A')}
                       <div>
                         <h4 className="font-semibold">{match.awayTeam || 'Away Team'}</h4>
                         <p className="text-xs text-text-secondary">Away</p>
@@ -247,7 +269,9 @@ const Matches = () => {
                   </div>
                   <div className="flex items-center justify-between text-sm mt-2">
                     <div className="text-text-secondary">Time:</div>
-                    <div className="font-medium">{match.time || '00:00'}</div>
+                    <div className="font-medium">
+                      {formatMatchTime(match)}
+                    </div>
                   </div>
                 </div>
 
@@ -268,7 +292,7 @@ const Matches = () => {
         <PredictionForm
           onClose={closePredictionForm}
           match={selectedMatch}
-          allowLive
+          matches={upcomingMatches}
         />
       )}
     </div>

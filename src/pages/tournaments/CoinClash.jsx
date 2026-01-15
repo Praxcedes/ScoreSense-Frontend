@@ -27,6 +27,7 @@ import { useWeb3 } from '../../hooks/useWeb3'
 import { getContractCode, getCoinClashAddress, getPointsTokenId } from '../../services/blockchain'
 import CoinClashAnimation from '../../components/CoinClashAnimation'
 import { toast } from 'react-hot-toast'
+import { useAuth } from '../../hooks/useAuth'
 
 const CoinClash = () => {
   const [activeTab, setActiveTab] = useState('available')
@@ -41,7 +42,9 @@ const CoinClash = () => {
   const [liveMode, setLiveMode] = useState('play')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [createEntry, setCreateEntry] = useState(100)
+  const { user } = useAuth()
   const { address, contract, readContract, pointsContract, pointsReadContract, connectWallet, ensureNetwork, connecting } = useWeb3()
+  const isAdmin = ['admin', 'superadmin'].includes(String(user?.role || '').toLowerCase())
 
   const tabs = [
     { id: 'available', name: 'Available' },
@@ -232,6 +235,10 @@ const CoinClash = () => {
   }
 
   const approvePoints = async () => {
+    if (!isAdmin) {
+      toast.error('Only admins can approve points for CoinClash.')
+      return
+    }
     try {
       await ensureWalletReady()
       if (!pointsContract) {
@@ -299,6 +306,10 @@ const CoinClash = () => {
   }
 
   const resolveRound = async (sessionId) => {
+    if (!isAdmin) {
+      toast.error('Only admins can resolve rounds.')
+      return
+    }
     try {
       await ensureWalletReady()
       if (!contract) {
@@ -372,10 +383,10 @@ const CoinClash = () => {
               )}
               <button
                 onClick={approvePoints}
-                disabled={!address || connecting || isApproved}
+                disabled={!address || connecting || isApproved || !isAdmin}
                 className="px-4 py-2 bg-card border border-card text-sm rounded-lg hover:bg-hover transition disabled:opacity-60"
               >
-                {isApproved ? 'Points Approved' : 'Approve Points'}
+                {isApproved ? 'Points Approved' : isAdmin ? 'Approve Points' : 'Admin Only'}
               </button>
               <button
                 onClick={createSession}
@@ -530,7 +541,8 @@ const CoinClash = () => {
                     </button>
                     <button
                       onClick={() => resolveRound(session.id)}
-                      className="py-2 rounded-lg bg-primary text-black text-sm hover:opacity-90 transition"
+                      disabled={!isAdmin}
+                      className="py-2 rounded-lg bg-primary text-black text-sm hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       Resolve
                     </button>
@@ -609,7 +621,8 @@ const CoinClash = () => {
                   </button>
                   <button
                     onClick={() => resolveRound(liveSession.id)}
-                    className="px-4 py-2 rounded-lg bg-primary text-black text-sm hover:opacity-90 transition"
+                    disabled={!isAdmin}
+                    className="px-4 py-2 rounded-lg bg-primary text-black text-sm hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     Resolve
                   </button>

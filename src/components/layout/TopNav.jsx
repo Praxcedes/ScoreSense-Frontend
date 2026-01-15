@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Search, Bell, ChevronDown, Wifi, WifiOff } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { usePoints } from '../../hooks/usePoints'
 import { useAuth } from '../../hooks/useAuth'
 import { useWebSocket } from '../../hooks/useWebSocket'
+import { motion, AnimatePresence } from 'framer-motion'
 import { matchesService } from '../../services/matches.service'
+import Avatar from '../common/Avatar'
 
 const TopNav = () => {
   const navigate = useNavigate()
@@ -14,8 +15,7 @@ const TopNav = () => {
   const { isConnected, notifications } = useWebSocket()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
-  const [searchLoading, setSearchLoading] = useState(false)
-  const [searchError, setSearchError] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
@@ -23,6 +23,7 @@ const TopNav = () => {
   const notificationsRef = useRef(null)
   const profileRef = useRef(null)
 
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -44,38 +45,43 @@ const TopNav = () => {
     const query = searchQuery.trim()
     if (query.length < 2) {
       setSearchResults([])
-      setSearchError('')
-      setSearchLoading(false)
-      setShowSearchResults(false)
+      setIsSearching(false)
       return
     }
 
-    const timeoutId = setTimeout(async () => {
-      setSearchLoading(true)
-      setSearchError('')
+    let isActive = true
+    setIsSearching(true)
+    const handle = setTimeout(async () => {
       try {
         const response = await matchesService.searchMatches(query, 8)
-        const matches = Array.isArray(response)
-          ? response
-          : (response?.matches || response?.data || [])
-        setSearchResults(matches)
+        if (!isActive) return
+        setSearchResults(response?.matches || [])
       } catch (error) {
-        setSearchError('Search failed. Please try again.')
+        if (!isActive) return
         setSearchResults([])
       } finally {
-        setSearchLoading(false)
-        setShowSearchResults(true)
+        if (isActive) setIsSearching(false)
       }
     }, 300)
 
-    return () => clearTimeout(timeoutId)
+    return () => {
+      isActive = false
+      clearTimeout(handle)
+    }
   }, [searchQuery])
 
-  const handleSelectMatch = (match) => {
-    const label = match?.name || `${match?.homeTeam || match?.home_team || ''} vs ${match?.awayTeam || match?.away_team || ''}`.trim()
-    setSearchQuery(label)
-    setShowSearchResults(false)
-    navigate('/matches', { state: { searchQuery: label, matchId: match?.id } })
+  const handleSearchChange = (event) => {
+    const nextValue = event.target.value
+    setSearchQuery(nextValue)
+    setShowSearchResults(nextValue.trim().length >= 2)
+  }
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault()
+    if (searchQuery.trim()) {
+      navigate('/matches')
+      setShowSearchResults(false)
+    }
   }
 
   const unreadNotifications = notifications.filter(n => !n.read).length
@@ -83,63 +89,94 @@ const TopNav = () => {
   return (
     <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-card px-4 md:px-6 py-4">
       <div className="flex items-center justify-between">
-        <div className="flex-1 max-w-xl">
-          <div className="relative" ref={searchRef}>
+        {/* Left Side */}
+        <div className="flex-1 max-w-xl" ref={searchRef}>
+          <form className="relative" onSubmit={handleSearchSubmit}>
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary" size={20} />
             <input
               type="text"
               placeholder="Search matches, teams, or players..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => {
-                if (searchQuery.trim().length >= 2) {
-                  setShowSearchResults(true)
-                }
-              }}
+              onChange={handleSearchChange}
+              onFocus={() => setShowSearchResults(searchQuery.trim().length >= 2)}
               className="w-full pl-10 pr-4 py-2.5 bg-card border border-card rounded-xl text-white placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
             />
+          </form>
 
+          <AnimatePresence>
             {showSearchResults && (
-              <div className="absolute left-0 right-0 mt-2 bg-surface rounded-xl border border-card shadow-2xl overflow-hidden z-50">
-                {searchLoading && (
-                  <div className="p-4 text-sm text-text-secondary">Searching...</div>
-                )}
-                {!searchLoading && searchError && (
-                  <div className="p-4 text-sm text-red-400">{searchError}</div>
-                )}
-                {!searchLoading && !searchError && (
-                  <>
-                    {searchResults.length > 0 ? (
-                      <div className="max-h-72 overflow-y-auto">
-                        {searchResults.map((match, index) => {
-                          const home = match?.homeTeam || match?.home_team || 'Home'
-                          const away = match?.awayTeam || match?.away_team || 'Away'
-                          const league = match?.league || match?.league_name || 'Match'
-                          const status = match?.status || match?.match_status || 'upcoming'
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="absolute left-0 right-0 mt-2 bg-surface border border-card rounded-xl shadow-2xl overflow-hidden z-50"
+              >
+                {isSearching ? (
+                  <div className="px-4 py-6 text-center text-sm text-text-secondary">
+                    Searching...
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  <div className="max-h-80 overflow-y-auto">
+                    {searchResults.map((match) => {
+                      const homeTeam = match?.homeTeam || match?.home_team || 'Home'
+                      const awayTeam = match?.awayTeam || match?.away_team || 'Away'
+                      const league = match?.league || match?.league_name || 'League'
+                      const status = match?.status || match?.match_status || 'upcoming'
+                      const displayName = match?.name || `${homeTeam} vs ${awayTeam}`
+                      const homeLogo = match?.homeLogo || match?.home_logo
+                      const awayLogo = match?.awayLogo || match?.away_logo
 
-                          return (
-                            <button
-                              key={match?.id || `${home}-${away}-${index}`}
-                              onClick={() => handleSelectMatch(match)}
-                              className="w-full text-left px-4 py-3 border-b border-card hover:bg-hover transition-colors"
-                            >
-                              <div className="font-medium">{home} vs {away}</div>
-                              <div className="text-xs text-text-secondary">{league} • {status}</div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      <div className="p-4 text-sm text-text-secondary">No matches found.</div>
-                    )}
-                  </>
+                      return (
+                        <button
+                          key={match?.id ?? match?.match_id ?? match?.event_id ?? displayName}
+                          type="button"
+                          onClick={() => {
+                            setShowSearchResults(false)
+                            setSearchQuery(displayName)
+                            navigate('/matches')
+                          }}
+                          className="w-full text-left px-4 py-3 border-b border-card last:border-b-0 hover:bg-hover transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center -space-x-2">
+                                <div className="w-7 h-7 rounded-full bg-card border border-card overflow-hidden flex items-center justify-center text-[10px] font-semibold">
+                                  {homeLogo ? (
+                                    <img src={homeLogo} alt={`${homeTeam} logo`} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span>{homeTeam.charAt(0)}</span>
+                                  )}
+                                </div>
+                                <div className="w-7 h-7 rounded-full bg-card border border-card overflow-hidden flex items-center justify-center text-[10px] font-semibold">
+                                  {awayLogo ? (
+                                    <img src={awayLogo} alt={`${awayTeam} logo`} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span>{awayTeam.charAt(0)}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <span className="font-medium">{displayName}</span>
+                            </div>
+                            <span className="text-xs text-text-secondary uppercase">{status}</span>
+                          </div>
+                          <div className="text-xs text-text-secondary mt-1">{league}</div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="px-4 py-6 text-center text-sm text-text-secondary">
+                    No matches found.
+                  </div>
                 )}
-              </div>
+              </motion.div>
             )}
-          </div>
+          </AnimatePresence>
         </div>
 
+        {/* Right Side */}
         <div className="flex items-center space-x-4">
+          {/* Connection Status */}
           <div className={`hidden md:flex items-center space-x-2 px-3 py-2 rounded-lg ${
             isConnected ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
           }`}>
@@ -149,6 +186,7 @@ const TopNav = () => {
             </span>
           </div>
 
+          {/* Points Display */}
           <div className="hidden md:flex items-center space-x-2 bg-card px-4 py-2.5 rounded-xl border border-card">
             <div className="w-2 h-2 bg-primary rounded-full"></div>
             <div>
@@ -157,6 +195,7 @@ const TopNav = () => {
             </div>
           </div>
 
+          {/* Notifications */}
           <div className="relative" ref={notificationsRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
@@ -213,14 +252,23 @@ const TopNav = () => {
             </AnimatePresence>
           </div>
 
+          {/* Profile Menu */}
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center space-x-3 p-2 hover:bg-hover rounded-xl transition-colors"
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-card to-hover rounded-full flex items-center justify-center">
-                <span className="font-bold">{user?.username?.charAt(0) || 'U'}</span>
-              </div>
+              <Avatar
+                size="medium"
+                alt={user?.username}
+                src={
+                  user?.avatar ||
+                  user?.avatarUrl ||
+                  user?.profileImage ||
+                  user?.profile_image ||
+                  user?.photo
+                }
+              />
               <div className="hidden lg:block text-left">
                 <p className="font-semibold text-sm">{user?.username || 'User'}</p>
                 <p className="text-xs text-text-secondary">#{user?.rank || 'Unranked'}</p>

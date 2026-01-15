@@ -5,11 +5,11 @@ export const adminService = {
     return api.get('/admin/overview')
   },
 
-  listTournaments(params = {}) {
-    return api.get('/admin/tournaments', { params })
+  getTournaments({ page = 1, perPage = 20 } = {}) {
+    return api.get('/admin/tournaments', { params: { page, per_page: perPage } })
   },
 
-  getTournament(id) {
+  getTournamentDetails(id) {
     return api.get(`/admin/tournaments/${id}`)
   },
 
@@ -17,7 +17,9 @@ export const adminService = {
     return api.post(`/admin/tournaments/${id}/cancel`)
   },
 
-  listPredictions(params = {}) {
+  getPredictions({ page = 1, perPage = 20, status } = {}) {
+    const params = { page, per_page: perPage }
+    if (status) params.status = status
     return api.get('/admin/predictions', { params })
   },
 
@@ -25,8 +27,8 @@ export const adminService = {
     return api.post(`/admin/predictions/${id}/resolve`, { outcome })
   },
 
-  listTransactions(params = {}) {
-    return api.get('/admin/transactions', { params })
+  getTransactions({ page = 1, perPage = 20 } = {}) {
+    return api.get('/admin/transactions', { params: { page, per_page: perPage } })
   },
 
   getRevenue() {
@@ -47,5 +49,17 @@ export const adminService = {
 
   createBackup() {
     return api.post('/admin/maintenance/backup')
+  },
+
+  getAdminRequests() {
+    return api.get('/admin/requests')
+  },
+
+  approveAdminRequest(userId) {
+    return api.post(`/admin/requests/${userId}/approve`)
+  },
+
+  denyAdminRequest(userId) {
+    return api.post(`/admin/requests/${userId}/deny`)
   }
 }

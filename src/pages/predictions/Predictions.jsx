@@ -1,65 +1,110 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Target,
   TrendingUp,
   Trophy,
   BarChart3,
-  Clock,
   Filter,
   Search,
   Zap,
   Shield,
-  DollarSign,
-  TrendingDown,
-  CheckCircle,
-  XCircle,
-  Calendar,
-  Hash,
-  Award,
   Star
 } from 'lucide-react'
 import { usePoints } from '../../hooks/usePoints'
-import { useMatches } from '../../hooks/useMatches'
 import PredictionCard from '../../components/predictions/PredictionCard'
 import PredictionForm from '../../components/predictions/PredictionForm'
-import Loader from '../../components/common/Loader'
 
 const Predictions = () => {
-  const { predictions, predictionsStats, points } = usePoints()
-  const { liveMatches = [], upcomingMatches = [] } = useMatches() || {}
+  const { predictions = [], points } = usePoints()
   const [activeTab, setActiveTab] = useState('active')
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [sportFilter, setSportFilter] = useState('all')
   const [sortBy, setSortBy] = useState('recent')
 
-  const statusCounts = (predictions || []).reduce((acc, prediction) => {
-    const status = (prediction?.status || 'pending').toLowerCase()
-    acc[status] = (acc[status] || 0) + 1
-    return acc
-  }, {})
+  const normalizedPredictions = useMemo(() => {
+    return predictions.map((prediction) => {
+      const status =
+        prediction.status === 'correct'
+          ? 'won'
+          : prediction.status === 'incorrect'
+          ? 'lost'
+          : prediction.status || 'pending'
 
-  const totalPredictions = predictionsStats?.total_predictions ?? (predictions?.length || 0)
-  const activePredictions = predictionsStats?.active_predictions ?? statusCounts.active ?? 0
-  const wonPredictions = predictionsStats?.won_predictions ?? statusCounts.won ?? 0
-  const lostPredictions = predictionsStats?.lost_predictions ?? statusCounts.lost ?? 0
-  const pendingPredictions = statusCounts.pending ?? 0
-  const winRate = Number.isFinite(predictionsStats?.win_rate)
-    ? `${predictionsStats.win_rate.toFixed(1)}%`
-    : '0%'
+      return {
+        id: prediction.id,
+        match: prediction.match_name || prediction.match || `Match #${prediction.match_id || 'N/A'}`,
+        prediction: prediction.prediction || 'Prediction',
+        odds: prediction.odds || prediction.odds_value || 1.0,
+        stake: prediction.amount || prediction.stake_amount || 0,
+        potential: prediction.potential_payout || prediction.potential_winnings || 0,
+        status,
+        confidence: prediction.confidence || 0,
+        created_at: prediction.created_at
+      }
+    })
+  }, [predictions])
 
-  const tabs = [
-    { id: 'active', name: 'Active', count: activePredictions },
-    { id: 'pending', name: 'Pending', count: pendingPredictions },
-    { id: 'won', name: 'Won', count: wonPredictions },
-    { id: 'lost', name: 'Lost', count: lostPredictions },
-    { id: 'all', name: 'All', count: totalPredictions }
-  ]
+  const stats = useMemo(() => {
+    const total = normalizedPredictions.length
+    const won = normalizedPredictions.filter((item) => item.status === 'won').length
+    const lost = normalizedPredictions.filter((item) => item.status === 'lost').length
+    const winRate = total > 0 ? ((won / total) * 100).toFixed(1) : '0'
+    const totalProfit = normalizedPredictions.reduce((sum, item) => {
+      if (item.status !== 'won') return sum
+      return sum + (item.potential - item.stake)
+    }, 0)
+
+    return [
+      {
+        title: 'Total Predictions',
+        value: total.toLocaleString(),
+        change: total ? '+Active' : '0',
+        icon: <Target className="text-primary" />,
+        color: 'primary'
+      },
+      {
+        title: 'Win Rate',
+        value: `${winRate}%`,
+        change: total ? '+Live' : '0%',
+        icon: <TrendingUp className="text-green-400" />,
+        color: 'green'
+      },
+      {
+        title: 'Total Profit',
+        value: `${totalProfit.toLocaleString()} PTS`,
+        change: total ? 'Updated' : '0',
+        icon: <Trophy className="text-yellow-400" />,
+        color: 'yellow'
+      },
+      {
+        title: 'Avg. Return',
+        value: total ? `${Math.round((totalProfit / total) * 10) / 10} PTS` : '0 PTS',
+        change: 'Live',
+        icon: <BarChart3 className="text-purple-400" />,
+        color: 'purple'
+      }
+    ]
+  }, [normalizedPredictions])
+
+  const tabs = useMemo(() => {
+    const pendingCount = normalizedPredictions.filter((item) => item.status === 'pending').length
+    const wonCount = normalizedPredictions.filter((item) => item.status === 'won').length
+    const lostCount = normalizedPredictions.filter((item) => item.status === 'lost').length
+
+    return [
+      { id: 'active', name: 'Active', count: pendingCount },
+      { id: 'pending', name: 'Pending', count: pendingCount },
+      { id: 'won', name: 'Won', count: wonCount },
+      { id: 'lost', name: 'Lost', count: lostCount },
+      { id: 'all', name: 'All', count: normalizedPredictions.length }
+    ]
+  }, [normalizedPredictions])
 
   const sports = [
-    { id: "all", name: "All Sports", icon: "🏆" },
-    { id: "football", name: "Football", icon: "⚽" }
+    { id: 'all', name: 'All Sports', icon: '🏆' },
+    { id: 'football', name: 'Football', icon: '⚽' }
   ]
 
   const sortOptions = [
@@ -69,41 +114,45 @@ const Predictions = () => {
     { id: 'odds', name: 'Best Odds' }
   ]
 
-  const stats = [
-    {
-      title: 'Total Predictions',
-      value: totalPredictions.toLocaleString(),
-      change: null,
-      icon: <Target className="text-primary" />,
-      color: 'primary'
-    },
-    {
-      title: 'Win Rate',
-      value: winRate,
-      change: null,
-      icon: <TrendingUp className="text-green-400" />,
-      color: 'green'
-    },
-    {
-      title: 'Won Predictions',
-      value: wonPredictions.toLocaleString(),
-      change: null,
-      icon: <Trophy className="text-yellow-400" />,
-      color: 'yellow'
-    },
-    {
-      title: 'Lost Predictions',
-      value: lostPredictions.toLocaleString(),
-      change: null,
-      icon: <BarChart3 className="text-purple-400" />,
-      color: 'purple'
+  const filteredPredictions = useMemo(() => {
+    let list = [...normalizedPredictions]
+
+    if (activeTab === 'active' || activeTab === 'pending') {
+      list = list.filter((item) => item.status === 'pending')
+    } else if (activeTab === 'won') {
+      list = list.filter((item) => item.status === 'won')
+    } else if (activeTab === 'lost') {
+      list = list.filter((item) => item.status === 'lost')
     }
-  ]
-  const quickPredictions = (predictions || []).slice(0, 3)
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      list = list.filter((item) =>
+        item.match.toLowerCase().includes(query) || item.prediction.toLowerCase().includes(query)
+      )
+    }
+
+    if (sportFilter !== 'all') {
+      list = list.filter((item) => item.match.toLowerCase().includes('fc') || item.match.toLowerCase().includes('vs'))
+    }
+
+    if (sortBy === 'stake') {
+      list.sort((a, b) => b.stake - a.stake)
+    } else if (sortBy === 'potential') {
+      list.sort((a, b) => b.potential - a.potential)
+    } else if (sortBy === 'odds') {
+      list.sort((a, b) => b.odds - a.odds)
+    } else {
+      list.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+    }
+
+    return list
+  }, [activeTab, normalizedPredictions, searchQuery, sortBy, sportFilter])
+
+  const quickPredictions = filteredPredictions.slice(0, 3)
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">Predictions</h1>
@@ -125,7 +174,6 @@ const Predictions = () => {
         </div>
       </div>
 
-      {/* Stats Overview */}
       <div className="grid-dashboard">
         {stats.map((stat, index) => (
           <motion.div
@@ -142,13 +190,9 @@ const Predictions = () => {
                                       'bg-purple-500/20'} rounded-xl`}>
                 {stat.icon}
               </div>
-              {stat.change && (
-                <span className={`text-sm font-medium ${
-                  stat.change.startsWith('+') ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  {stat.change}
-                </span>
-              )}
+              <span className="text-sm font-medium text-text-secondary">
+                {stat.change}
+              </span>
             </div>
             <h3 className="text-3xl font-bold">{stat.value}</h3>
             <p className="text-text-secondary text-sm mt-1">{stat.title}</p>
@@ -156,7 +200,6 @@ const Predictions = () => {
         ))}
       </div>
 
-      {/* Search and Filters */}
       <div className="card p-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex-1">
@@ -198,7 +241,6 @@ const Predictions = () => {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex space-x-1 bg-card p-1 rounded-xl">
         {tabs.map((tab) => (
           <button
@@ -224,7 +266,6 @@ const Predictions = () => {
         ))}
       </div>
 
-      {/* Quick Predictions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <div className="space-y-4">
@@ -234,16 +275,15 @@ const Predictions = () => {
             </h3>
             {quickPredictions.length > 0 ? (
               quickPredictions.map((prediction, index) => (
-                <PredictionCard key={prediction.id || index} prediction={prediction} index={index} />
+                <PredictionCard key={prediction.id} prediction={prediction} index={index} />
               ))
             ) : (
               <div className="card p-6 text-center text-text-secondary">
-                No recent predictions yet.
+                No quick predictions yet.
               </div>
             )}
           </div>
 
-          {/* All Predictions */}
           <div className="mt-8">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold">All Predictions</h3>
@@ -252,10 +292,10 @@ const Predictions = () => {
                 <span className="font-bold text-primary">{points} PTS</span>
               </div>
             </div>
-            
-            {predictions && predictions.length > 0 ? (
+
+            {filteredPredictions.length > 0 ? (
               <div className="space-y-4">
-                {predictions.slice(0, 10).map((prediction, index) => (
+                {filteredPredictions.map((prediction, index) => (
                   <PredictionCard key={prediction.id} prediction={prediction} index={index} />
                 ))}
               </div>
@@ -277,46 +317,38 @@ const Predictions = () => {
           </div>
         </div>
 
-        {/* Right Column - Insights & Tools */}
         <div className="space-y-6">
-          {/* Prediction Form Modal */}
           <AnimatePresence>
             {showForm && (
-              <PredictionForm
-                onClose={() => setShowForm(false)}
-                matches={[...liveMatches, ...upcomingMatches]}
-                allowLive
-              />
+              <PredictionForm onClose={() => setShowForm(false)} />
             )}
           </AnimatePresence>
 
-          {/* Insights */}
           <div className="card p-6">
             <h3 className="font-bold mb-4 flex items-center space-x-2">
               <BarChart3 size={20} />
               <span>Prediction Insights</span>
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-4 text-sm text-text-secondary">
               <div className="flex items-center justify-between">
-                <span className="text-text-secondary">Best Sport</span>
-                <span className="font-bold">Football (72%)</span>
+                <span>Best Sport</span>
+                <span className="font-bold text-white">Football</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-text-secondary">Best Market</span>
-                <span className="font-bold">Match Winner (65%)</span>
+                <span>Best Market</span>
+                <span className="font-bold text-white">Match Winner</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-text-secondary">Avg. Odds</span>
-                <span className="font-bold">1.85</span>
+                <span>Avg. Odds</span>
+                <span className="font-bold text-white">1.85</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-text-secondary">Total Stake</span>
-                <span className="font-bold">5,240 PTS</span>
+                <span>Total Stake</span>
+                <span className="font-bold text-white">{points} PTS</span>
               </div>
             </div>
           </div>
 
-          {/* Risk Calculator */}
           <div className="card p-6">
             <h3 className="font-bold mb-4 flex items-center space-x-2">
               <Shield size={20} />
@@ -360,7 +392,6 @@ const Predictions = () => {
             </div>
           </div>
 
-          {/* Tips */}
           <div className="card p-6">
             <h3 className="font-bold mb-4 flex items-center space-x-2">
               <Star size={20} />
@@ -381,25 +412,6 @@ const Predictions = () => {
               ))}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Prediction History Chart */}
-      <div className="card p-6 mt-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-xl font-bold">Prediction Performance</h3>
-            <p className="text-text-secondary">30-day win/loss trend</p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <TrendingUp className="text-green-400" size={20} />
-            <span className="text-green-400 font-bold">+15.3% this month</span>
-          </div>
-        </div>
-        {/* Chart would go here */}
-        <div className="h-64 bg-card rounded-xl flex items-center justify-center">
-          <BarChart3 className="text-text-secondary" size={48} />
-          <p className="text-text-secondary ml-4">Performance chart coming soon</p>
         </div>
       </div>
     </div>

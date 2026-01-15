@@ -5,172 +5,144 @@
 
 class WalletService {
   constructor() {
-    this.provider = null;
-    this.signer = null;
-    this.walletAddress = null;
-    this.chainId = null;
-    this.isConnected = false;
+    this.provider = null
+    this.signer = null
+    this.walletAddress = null
+    this.chainId = null
+    this.isConnected = false
   }
 
-  /**
-   * Check if MetaMask/Celo wallet is installed
-   */
   async checkWalletInstalled() {
     if (typeof window.ethereum !== 'undefined') {
-      return true;
+      return true
     }
-    
-    // Check for Celo wallet specifically
+
     if (typeof window.celo !== 'undefined') {
-      return true;
+      return true
     }
-    
-    return false;
+
+    return false
   }
 
-  /**
-   * Connect to wallet
-   */
   async connectWallet() {
     try {
       if (!await this.checkWalletInstalled()) {
-        throw new Error('No Ethereum wallet found. Please install MetaMask or Celo Wallet.');
+        throw new Error('No Ethereum wallet found. Please install MetaMask or Celo Wallet.')
       }
 
-      // Request account access
       await window.ethereum.request({
         method: 'eth_requestAccounts'
-      });
+      })
 
-      // Import ethers dynamically (v6 compatible)
-      const ethersModule = await import('ethers');
-      const { BrowserProvider } = ethersModule;
-      
-      // Create ethers provider and signer
-      this.provider = new BrowserProvider(window.ethereum);
-      this.signer = await this.provider.getSigner();
-      this.walletAddress = await this.signer.getAddress();
-      
-      // Get chain ID
+      const ethersModule = await import('ethers')
+      const ethers = ethersModule.default || ethersModule
+
+      if (ethers.BrowserProvider) {
+        this.provider = new ethers.BrowserProvider(window.ethereum)
+        this.signer = await this.provider.getSigner()
+      } else {
+        this.provider = new ethers.providers.Web3Provider(window.ethereum)
+        this.signer = this.provider.getSigner()
+      }
+
+      this.walletAddress = await this.signer.getAddress()
       this.chainId = await window.ethereum.request({
         method: 'eth_chainId'
-      });
+      })
 
-      this.isConnected = true;
+      this.isConnected = true
 
-      // Store in localStorage
-      localStorage.setItem('walletAddress', this.walletAddress);
-      localStorage.setItem('walletConnected', 'true');
+      localStorage.setItem('walletAddress', this.walletAddress)
+      localStorage.setItem('walletConnected', 'true')
 
-      // Listen for account changes
       window.ethereum.on('accountsChanged', (accounts) => {
         if (accounts.length === 0) {
-          this.disconnectWallet();
+          this.disconnectWallet()
         } else {
-          this.walletAddress = accounts[0];
-          localStorage.setItem('walletAddress', this.walletAddress);
-          window.dispatchEvent(new Event('walletAccountChanged'));
+          this.walletAddress = accounts[0]
+          localStorage.setItem('walletAddress', this.walletAddress)
+          window.dispatchEvent(new Event('walletAccountChanged'))
         }
-      });
+      })
 
-      // Listen for chain changes
       window.ethereum.on('chainChanged', (chainId) => {
-        this.chainId = chainId;
-        window.location.reload(); // Reload on network change
-      });
+        this.chainId = chainId
+        window.location.reload()
+      })
 
       return {
         success: true,
         address: this.walletAddress,
         chainId: this.chainId
-      };
-
+      }
     } catch (error) {
-      console.error('Wallet connection error:', error);
+      console.error('Wallet connection error:', error)
       return {
         success: false,
         error: error.message
-      };
+      }
     }
   }
 
-  /**
-   * Disconnect wallet
-   */
   disconnectWallet() {
-    this.provider = null;
-    this.signer = null;
-    this.walletAddress = null;
-    this.chainId = null;
-    this.isConnected = false;
-    
-    localStorage.removeItem('walletAddress');
-    localStorage.removeItem('walletConnected');
-    
-    window.dispatchEvent(new Event('walletDisconnected'));
+    this.provider = null
+    this.signer = null
+    this.walletAddress = null
+    this.chainId = null
+    this.isConnected = false
+
+    localStorage.removeItem('walletAddress')
+    localStorage.removeItem('walletConnected')
+
+    window.dispatchEvent(new Event('walletDisconnected'))
   }
 
-  /**
-   * Get wallet address
-   */
   getAddress() {
-    return this.walletAddress || localStorage.getItem('walletAddress');
+    return this.walletAddress || localStorage.getItem('walletAddress')
   }
 
-  /**
-   * Check if wallet is connected
-   */
   getIsConnected() {
-    return this.isConnected || localStorage.getItem('walletConnected') === 'true';
+    return this.isConnected || localStorage.getItem('walletConnected') === 'true'
   }
 
-  /**
-   * Sign a message (for authentication)
-   */
   async signMessage(message) {
     if (!this.signer || !this.walletAddress) {
-      throw new Error('Wallet not connected');
+      throw new Error('Wallet not connected')
     }
 
     try {
-      const signature = await this.signer.signMessage(message);
-      return signature;
+      const signature = await this.signer.signMessage(message)
+      return signature
     } catch (error) {
-      console.error('Message signing error:', error);
-      throw error;
+      console.error('Message signing error:', error)
+      throw error
     }
   }
 
-  /**
-   * Get CELO balance
-   */
   async getCeloBalance() {
     if (!this.provider || !this.walletAddress) {
-      throw new Error('Wallet not connected');
+      throw new Error('Wallet not connected')
     }
 
     try {
-      const balance = await this.provider.getBalance(this.walletAddress);
-      const ethersModule = await import('ethers');
-      return ethersModule.formatEther(balance);
+      const ethersModule = await import('ethers')
+      const ethers = ethersModule.default || ethersModule
+      const balance = await this.provider.getBalance(this.walletAddress)
+      return ethers.formatEther ? ethers.formatEther(balance) : ethers.utils.formatEther(balance)
     } catch (error) {
-      console.error('Balance check error:', error);
-      throw error;
+      console.error('Balance check error:', error)
+      throw error
     }
   }
 
-  /**
-   * Switch to Celo Sepolia network
-   */
   async switchToCeloSepolia() {
     try {
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0xaa36a7' }] // 11142220 in hex
-      });
-      return true;
+        params: [{ chainId: '0xaa36a7' }]
+      })
+      return true
     } catch (switchError) {
-      // If network not added, add it
       if (switchError.code === 4902) {
         try {
           await window.ethereum.request({
@@ -186,17 +158,16 @@ class WalletService {
               rpcUrls: ['https://forno.celo-sepolia.celo-testnet.org'],
               blockExplorerUrls: ['https://celo-sepolia.blockscout.com/']
             }]
-          });
-          return true;
+          })
+          return true
         } catch (addError) {
-          throw new Error('Failed to add Celo Sepolia network');
+          throw new Error('Failed to add Celo Sepolia network')
         }
       }
-      throw switchError;
+      throw switchError
     }
   }
 }
 
-// Create singleton instance
-const walletService = new WalletService();
-export default walletService;
+const walletService = new WalletService()
+export default walletService

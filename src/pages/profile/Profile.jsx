@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { User, Mail, Calendar, MapPin, Trophy, TrendingUp, Edit, Camera } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
@@ -7,9 +7,11 @@ import Avatar from '../../components/common/Avatar'
 import ProgressChart from '../../components/charts/ProgressChart'
 
 const Profile = () => {
-  const { user, updateProfile } = useAuth()
+  const { user, updateProfile, uploadAvatar } = useAuth()
   const { points } = usePoints()
+  const fileInputRef = useRef(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatarUrl || user?.avatar || '')
   const [formData, setFormData] = useState({
     username: user?.username || '',
     email: user?.email || '',
@@ -17,16 +19,77 @@ const Profile = () => {
     location: user?.location || ''
   })
 
+  useEffect(() => {
+    setAvatarPreview(user?.avatarUrl || user?.avatar || '')
+    setFormData({
+      username: user?.username || '',
+      email: user?.email || '',
+      bio: user?.bio || '',
+      location: user?.location || ''
+    })
+  }, [user])
+
+  const winRateValue = user?.winRate ?? user?.stats?.winRate
+  const rankValue = user?.rank ?? user?.stats?.rank
+  const memberSinceValue = user?.memberSince || (user?.created_at ? new Date(user.created_at).getFullYear() : null)
+  const levelProgress = Number.isFinite(user?.levelProgress) ? user.levelProgress : 0
+  const levelLabel = user?.level ? `Level ${user.level}` : 'Level —'
+  const achievements = Array.isArray(user?.achievements) ? user.achievements : []
+
   const stats = [
     { label: 'Total Points', value: points.toLocaleString(), icon: <Trophy />, color: 'yellow' },
-    { label: 'Win Rate', value: '68.4%', icon: <TrendingUp />, color: 'green' },
-    { label: 'Rank', value: '#42', icon: <User />, color: 'purple' },
-    { label: 'Member Since', value: '2023', icon: <Calendar />, color: 'blue' }
+    { label: 'Win Rate', value: winRateValue ? `${winRateValue}%` : '—', icon: <TrendingUp />, color: 'green' },
+    { label: 'Rank', value: rankValue ? `#${rankValue}` : '—', icon: <User />, color: 'purple' },
+    { label: 'Member Since', value: memberSinceValue || '—', icon: <Calendar />, color: 'blue' }
   ]
 
   const handleSave = async () => {
-    await updateProfile(formData)
-    setIsEditing(false)
+    const normalize = (value) => {
+      const trimmed = value?.trim()
+      return trimmed ? trimmed : null
+    }
+
+    const nextPayload = {}
+    const nextUsername = normalize(formData.username)
+    const nextBio = normalize(formData.bio)
+    const nextLocation = normalize(formData.location)
+
+    if (nextUsername && nextUsername !== user?.username) {
+      nextPayload.username = nextUsername
+    }
+    if (nextBio !== (user?.bio ?? null)) {
+      nextPayload.bio = nextBio
+    }
+    if (nextLocation !== (user?.location ?? null)) {
+      nextPayload.location = nextLocation
+    }
+
+    if (Object.keys(nextPayload).length === 0) {
+      setIsEditing(false)
+      return
+    }
+
+    const result = await updateProfile(nextPayload)
+    if (result?.success) {
+      setIsEditing(false)
+    }
+  }
+
+  const handleAvatarSelect = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  const handleAvatarChange = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) return
+
+    const result = await uploadAvatar(file)
+    if (result?.success && result.avatarUrl) {
+      setAvatarPreview(result.avatarUrl)
+    }
   }
 
   return (
@@ -40,8 +103,19 @@ const Profile = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between">
           <div className="flex items-center space-x-6">
             <div className="relative">
-              <Avatar size="xlarge" alt={user?.username} />
-              <button className="absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full flex items-center justify-center hover:bg-primary/90 transition-colors">
+              <Avatar size="xlarge" alt={user?.username} src={avatarPreview} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              <button
+                type="button"
+                onClick={handleAvatarSelect}
+                className="absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full flex items-center justify-center hover:bg-primary/90 transition-colors"
+              >
                 <Camera size={20} />
               </button>
             </div>
@@ -199,10 +273,10 @@ const Profile = () => {
             className="card p-6"
           >
             <h3 className="font-bold mb-4">Level Progress</h3>
-            <ProgressChart progress={65} />
+            <ProgressChart progress={levelProgress} />
             <div className="flex items-center justify-between mt-4 text-sm text-text-secondary">
-              <span>Level 7</span>
-              <span>65% to next level</span>
+              <span>{levelLabel}</span>
+              <span>{levelProgress}% to next level</span>
             </div>
           </motion.div>
 
@@ -213,31 +287,31 @@ const Profile = () => {
             className="card p-6"
           >
             <h3 className="font-bold mb-4">Recent Achievements</h3>
-            <div className="space-y-3">
-              {[
-                { name: 'Perfect Week', description: '7 consecutive winning days', unlocked: true },
-                { name: 'Risk Taker', description: '10 high-stakes predictions', unlocked: true },
-                { name: 'Analyst Pro', description: '50 detailed analyses', unlocked: false }
-              ].map((achievement, index) => (
-                <div key={index} className={`p-3 rounded-xl border ${
-                  achievement.unlocked
-                    ? 'bg-green-500/10 border-green-500/30'
-                    : 'bg-card border-card'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{achievement.name}</p>
-                      <p className="text-sm text-text-secondary">{achievement.description}</p>
+            {achievements.length === 0 ? (
+              <div className="text-sm text-text-secondary">No achievements yet.</div>
+            ) : (
+              <div className="space-y-3">
+                {achievements.map((achievement, index) => (
+                  <div key={index} className={`p-3 rounded-xl border ${
+                    achievement.unlocked
+                      ? 'bg-green-500/10 border-green-500/30'
+                      : 'bg-card border-card'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{achievement.name}</p>
+                        <p className="text-sm text-text-secondary">{achievement.description}</p>
+                      </div>
+                      {achievement.unlocked ? (
+                        <Trophy className="text-yellow-400" size={20} />
+                      ) : (
+                        <div className="w-5 h-5 border-2 border-text-secondary rounded-full"></div>
+                      )}
                     </div>
-                    {achievement.unlocked ? (
-                      <Trophy className="text-yellow-400" size={20} />
-                    ) : (
-                      <div className="w-5 h-5 border-2 border-text-secondary rounded-full"></div>
-                    )}
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         </div>
       </div>
