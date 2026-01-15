@@ -28,21 +28,18 @@ import Predictions from '../pages/predictions/Predictions'
 import CoinClash from '../pages/tournaments/CoinClash'
 
 import AdminOverview from '../pages/admin/Overview'
+import AdminUsers from '../pages/admin/Users'
 import AdminTournaments from '../pages/admin/Tournaments'
 import AdminPredictions from '../pages/admin/Predictions'
 import AdminTransactions from '../pages/admin/Transactions'
+import AdminSettings from '../pages/admin/Settings'
 import AdminConfig from '../pages/admin/Config'
 import AdminMaintenance from '../pages/admin/Maintenance'
 import AdminRequests from '../pages/admin/AdminRequests'
 
 const App = () => {
   return (
-    <Router
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true
-      }}
-    >
+    <Router>
       <WebSocketProvider>
         <AuthProvider>
           <PointsProvider>
@@ -81,9 +78,11 @@ const App = () => {
                 <Route element={<AdminRoute><AdminLayout /></AdminRoute>}>
                   <Route path="/admin" element={<AdminOverview />} />
                   <Route path="/admin/overview" element={<AdminOverview />} />
+                  <Route path="/admin/users" element={<AdminUsers />} />
                   <Route path="/admin/tournaments" element={<AdminTournaments />} />
                   <Route path="/admin/predictions" element={<AdminPredictions />} />
                   <Route path="/admin/transactions" element={<AdminTransactions />} />
+                  <Route path="/admin/settings" element={<AdminSettings />} />
                   <Route path="/admin/config" element={<AdminConfig />} />
                   <Route path="/admin/maintenance" element={<AdminMaintenance />} />
                   <Route

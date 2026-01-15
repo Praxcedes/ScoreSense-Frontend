@@ -34,7 +34,6 @@ export const PointsProvider = ({ children }) => {
       if (isWalletConnected) {
         const address = walletService.getAddress()
         setWalletAddress(address)
-        await registerWalletWithBackend(address)
         await fetchBlockchainBalances(address)
       }
 
@@ -50,9 +49,7 @@ export const PointsProvider = ({ children }) => {
       setWalletConnected(true)
       const address = walletService.getAddress()
       setWalletAddress(address)
-      registerWalletWithBackend(address).then(() => {
-        fetchBlockchainBalances(address)
-      })
+      fetchBlockchainBalances(address)
     }
 
     const handleWalletDisconnected = () => {
@@ -190,7 +187,16 @@ export const PointsProvider = ({ children }) => {
       if (!address || !walletService.getIsConnected()) return
 
       const message = `Connect wallet to ScoreSense: ${Date.now()}`
-      const signature = await walletService.signMessage(message)
+      let signature
+      try {
+        signature = await walletService.signMessage(message)
+      } catch (error) {
+        const messageText = error?.message || ''
+        if (messageText.toLowerCase().includes('wallet not connected')) {
+          return
+        }
+        throw error
+      }
 
       await api.post('/blockchain/connect', {
         wallet_address: address,
@@ -281,7 +287,6 @@ export const PointsProvider = ({ children }) => {
     walletConnected,
     walletAddress,
     connectWallet,
-    disconnectWallet,
     disconnectWallet,
     addPoints,
     makePrediction,

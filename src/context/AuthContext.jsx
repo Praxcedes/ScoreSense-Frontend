@@ -13,9 +13,13 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus()
   }, [])
 
-  const setUserAndStore = (nextUser) => {
-    setUser(nextUser)
-    localStorage.setItem('user', JSON.stringify(nextUser))
+  const setUserAndStore = (nextUser, previousUser = null) => {
+    const prev = previousUser || user
+    const mergedUser = nextUser && prev && !nextUser.role && prev.role
+      ? { ...nextUser, role: prev.role }
+      : nextUser
+    setUser(mergedUser)
+    localStorage.setItem('user', JSON.stringify(mergedUser))
   }
 
   const checkAuthStatus = async () => {
@@ -28,7 +32,7 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await userService.getCurrentUser()
           if (response?.user) {
-            setUserAndStore(response.user)
+            setUserAndStore(response.user, parsedUser)
             setLoading(false)
             return
           }
@@ -59,7 +63,7 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await userService.getCurrentUser()
           if (response?.user) {
-            setUserAndStore(response.user)
+            setUserAndStore(response.user, userData)
           }
         } catch (error) {
           console.error('Error fetching current user after login:', error)
@@ -92,7 +96,7 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await userService.getCurrentUser()
           if (response?.user) {
-            setUserAndStore(response.user)
+            setUserAndStore(response.user, userData)
           }
         } catch (error) {
           console.error('Error fetching current user after admin login:', error)
@@ -128,7 +132,7 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await userService.getCurrentUser()
           if (response?.user) {
-            setUserAndStore(response.user)
+            setUserAndStore(response.user, newUser)
           }
         } catch (error) {
           console.error('Error fetching current user after register:', error)
@@ -173,7 +177,7 @@ export const AuthProvider = ({ children }) => {
         try {
           const refreshed = await userService.getCurrentUser()
           if (refreshed?.user) {
-            setUserAndStore(refreshed.user)
+            setUserAndStore(refreshed.user, nextUser)
           }
         } catch (error) {
           console.error('Error refreshing user after avatar upload:', error)

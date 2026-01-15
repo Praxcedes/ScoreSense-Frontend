@@ -13,7 +13,8 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/login" replace />
   }
 
-  if (user.role !== 'admin') {
+  const role = user?.role?.toLowerCase()
+  if (role !== 'admin' && role !== 'superadmin') {
     return <Navigate to="/dashboard" replace />
   }
 
