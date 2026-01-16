@@ -75,7 +75,7 @@ const PredictionCard = ({ prediction, index }) => {
             </span>
             <span className="text-text-secondary flex items-center space-x-1">
               <BarChart3 size={14} />
-              <span>{prediction.confidence}% confidence</span>
+              <span>{Number.isFinite(Number(prediction.confidence)) ? Math.round(Number(prediction.confidence)) : 0}% confidence</span>
             </span>
           </div>
         </div>

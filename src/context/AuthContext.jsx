@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.data?.access_token) {
         const token = response.data.access_token
-        const userData = response.data.user || { email, name: email.split('@')[0] }
+        const userData = (response?.data?.user) || { email, name: email.split('@')[0] }
 
         localStorage.setItem('accessToken', token)
         setUserAndStore(userData)
@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.data?.access_token) {
         const token = response.data.access_token
-        const userData = response.data.user || { email, name: email.split('@')[0], role: 'admin' }
+        const userData = (response?.data?.user) || { email, name: email.split('@')[0], role: 'admin' }
 
         localStorage.setItem('accessToken', token)
         setUserAndStore(userData)
