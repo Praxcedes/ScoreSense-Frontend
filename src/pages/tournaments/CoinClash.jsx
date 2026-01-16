@@ -36,6 +36,7 @@ const CoinClash = () => {
   const [error, setError] = useState(null)
   const [pointsBalance, setPointsBalance] = useState(0)
   const [isApproved, setIsApproved] = useState(false)
+  const [countdownNow, setCountdownNow] = useState(Date.now())
   const [showLiveModal, setShowLiveModal] = useState(false)
   const [liveSession, setLiveSession] = useState(null)
   const [liveMode, setLiveMode] = useState('play')
@@ -53,6 +54,13 @@ const CoinClash = () => {
   useEffect(() => {
     fetchCoinClashSessions()
   }, [address, readContract])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCountdownNow(Date.now())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   const mapStateToStatus = (state) => {
     switch (Number(state)) {
@@ -82,11 +90,11 @@ const CoinClash = () => {
     }
   }
 
-  const formatCountdown = (isoString) => {
+  const formatCountdown = (isoString, nowMs = Date.now()) => {
     if (!isoString) return null
     const target = new Date(isoString)
     if (Number.isNaN(target.getTime())) return null
-    const diffMs = target.getTime() - Date.now()
+    const diffMs = target.getTime() - nowMs
     if (diffMs <= 0) return null
     const totalSeconds = Math.floor(diffMs / 1000)
     const minutes = Math.floor(totalSeconds / 60)
@@ -128,6 +136,16 @@ const CoinClash = () => {
       }
     }
     await ensureNetwork()
+  }
+
+  const ensureApproval = async () => {
+    if (isApproved) return
+    if (!pointsContract) {
+      throw new Error('Points contract not available')
+    }
+    const tx = await pointsContract.setApprovalForAll(getCoinClashAddress(), true)
+    await tx.wait()
+    setIsApproved(true)
   }
 
   const fetchCoinClashSessions = async () => {
@@ -177,6 +195,9 @@ const CoinClash = () => {
         const formatEther = ethers.formatEther || ethers.utils.formatEther
         const entryFee = Number(formatEther(entryFeeWei))
         const prizePool = Number(formatEther(prizePoolWei))
+        const now = Date.now()
+        const startAt = new Date(now + 300 * 1000).toISOString()
+        const cancelAt = new Date(now + 300 * 1000).toISOString()
 
         return {
           id: Number(id.toString()),
@@ -194,6 +215,8 @@ const CoinClash = () => {
           auto_start_min_players: 2,
           auto_start_after_seconds: 300,
           auto_cancel_after_seconds: 300,
+          starts_at: startAt,
+          expires_at: cancelAt,
           side_selection_mode: 'free'
         }
       })
@@ -241,6 +264,10 @@ const CoinClash = () => {
   }
 
   const joinSession = (sessionId) => {
+    if (!address) {
+      toast.error('Connect your wallet to join a game')
+      return
+    }
     const session = sessions.find(item => item.id === sessionId)
     if (!session) {
       toast.error('Session not found')
@@ -258,13 +285,7 @@ const CoinClash = () => {
         throw new Error('Wallet not connected')
       }
 
-      if (!pointsContract) {
-        throw new Error('Points contract not available')
-      }
-
-      if (!isApproved) {
-        throw new Error('Approve points before joining a tournament')
-      }
+      await ensureApproval()
 
       const tx = await contract.joinTournament(sessionId, choice)
       await tx.wait()
@@ -273,21 +294,6 @@ const CoinClash = () => {
       toast.success('Joined session successfully!')
     } catch (err) {
       toast.error(err.message || 'Error joining session. Please try again.')
-    }
-  }
-
-  const approvePoints = async () => {
-    try {
-      await ensureWalletReady()
-      if (!pointsContract) {
-        throw new Error('Points contract not available')
-      }
-      const tx = await pointsContract.setApprovalForAll(getCoinClashAddress(), true)
-      await tx.wait()
-      setIsApproved(true)
-      toast.success('Points approval successful!')
-    } catch (err) {
-      toast.error(err.message || 'Failed to approve points.')
     }
   }
 
@@ -304,6 +310,10 @@ const CoinClash = () => {
   }
 
   const createSession = () => {
+    if (!address) {
+      toast.error('Connect your wallet to create a game')
+      return
+    }
     setCreateEntry(100)
     setShowCreateModal(true)
   }
@@ -314,6 +324,7 @@ const CoinClash = () => {
       if (!contract) {
         throw new Error('Wallet not connected')
       }
+      await ensureApproval()
 
       const entry = parseInt(createEntry, 10)
       const tier = entry === 300 ? 1 : entry === 500 ? 2 : 0
@@ -416,19 +427,12 @@ const CoinClash = () => {
                 </div>
               )}
               <button
-                onClick={approvePoints}
-                disabled={!address || connecting || isApproved}
-                className="px-4 py-2 bg-card border border-card text-sm rounded-lg hover:bg-hover transition disabled:opacity-60"
-              >
-                {isApproved ? 'Points Approved' : 'Approve Points'}
-              </button>
-              <button
                 onClick={createSession}
-                disabled={connecting}
+                disabled={connecting || !address}
                 className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg font-semibold hover:opacity-90 transition flex items-center space-x-2"
               >
                 <Gamepad2 size={20} />
-                <span>{connecting ? 'Connecting...' : 'Create Game'}</span>
+                <span>{connecting ? 'Connecting...' : address ? 'Create Game' : 'Connect Wallet'}</span>
               </button>
             </div>
           </div>
@@ -489,8 +493,8 @@ const CoinClash = () => {
         {filteredSessions.map((session) => {
           const roundLabel = getRoundLabel(session)
           const waitingMessages = getWaitingMessages(session)
-          const startCountdown = formatCountdown(session.starts_at)
-          const cancelCountdown = formatCountdown(session.expires_at)
+          const startCountdown = formatCountdown(session.starts_at, countdownNow)
+          const cancelCountdown = formatCountdown(session.expires_at, countdownNow)
           const isCancelled = session.status === 'CANCELLED'
           const duelMode = session.side_selection_mode === 'duel_auto_assign'
 

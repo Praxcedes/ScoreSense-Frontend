@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Calendar, MapPin, Users, Target } from 'lucide-react'
 import { usePoints } from '../../hooks/usePoints'
@@ -11,10 +11,11 @@ const MatchCard = ({ match, compact = false, featured = false }) => {
   const [selectedPrediction, setSelectedPrediction] = useState(null)
   const [stake, setStake] = useState(minStake)
   const [predicting, setPredicting] = useState(false)
+  const predictingRef = useRef(false)
   const homeTeam = match.homeTeam || match.home_team || 'Home'
   const awayTeam = match.awayTeam || match.away_team || 'Away'
-  const homeLogo = match.homeLogo || match.home_logo
-  const awayLogo = match.awayLogo || match.away_logo
+  const homeLogo = match.homeLogo || match.home_logo || match.homeBadge || match.home_badge || match.homeTeamLogo || match.home_team_logo
+  const awayLogo = match.awayLogo || match.away_logo || match.awayBadge || match.away_badge || match.awayTeamLogo || match.away_team_logo
 
   const clampStake = (value) => {
     if (!Number.isFinite(value)) return minStake
@@ -28,6 +29,9 @@ const MatchCard = ({ match, compact = false, featured = false }) => {
   }
 
   const handlePredict = async () => {
+    if (predictingRef.current) {
+      return
+    }
     if (!walletConnected) {
       toast.error('Connect your wallet to make predictions')
       return
@@ -48,6 +52,7 @@ const MatchCard = ({ match, compact = false, featured = false }) => {
       return
     }
 
+    predictingRef.current = true
     setPredicting(true)
     const oddsMap = {
       home_win: match.odds?.home || match.odds_home || 2.0,
@@ -69,6 +74,7 @@ const MatchCard = ({ match, compact = false, featured = false }) => {
     } else {
       toast.error(result.error || 'Failed to place prediction')
     }
+    predictingRef.current = false
   }
 
   const formatTime = (dateString) => {

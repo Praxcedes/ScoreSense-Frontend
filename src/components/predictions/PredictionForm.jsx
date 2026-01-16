@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   X,
@@ -27,6 +27,12 @@ const PredictionForm = ({ onClose, match: initialMatch = null, matches: provided
   })
   const [step, setStep] = useState(1)
   const [selectedMatch, setSelectedMatch] = useState(initialMatch)
+  const [stakeTouched, setStakeTouched] = useState(false)
+  const submittingRef = useRef(false)
+  const hasValidOdds = Number.isFinite(formData.odds) && formData.odds > 1
+  const hasValidStake = formData.stake >= minStake && formData.stake <= points
+  const canContinue = step === 1 ? !!selectedMatch : !!formData.prediction
+  const canSubmit = !!selectedMatch && !!formData.prediction && hasValidOdds && hasValidStake && stakeTouched
 
   const availableMatches = useMemo(() => {
     if (providedMatches.length > 0) return providedMatches
@@ -73,19 +79,48 @@ const PredictionForm = ({ onClose, match: initialMatch = null, matches: provided
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (submittingRef.current) {
+      return
+    }
+    if (step < 2) {
+      setStep(step + 1)
+      return
+    }
 
+    submittingRef.current = true
     if (formData.stake < minStake) {
-      toast.error(`Minimum stake is ${minStake} points`)
+      toast.error('Stake amount too low')
+      submittingRef.current = false
       return
     }
 
     if (formData.stake > points) {
-      toast.error('Insufficient points')
+      toast.error('Stake amount exceeds your balance')
+      submittingRef.current = false
       return
     }
 
     if (!selectedMatch) {
       toast.error('Please select a match')
+      submittingRef.current = false
+      return
+    }
+
+    if (!formData.prediction) {
+      toast.error('Please select a prediction type')
+      submittingRef.current = false
+      return
+    }
+
+    if (!hasValidOdds) {
+      toast.error('Please enter valid odds')
+      submittingRef.current = false
+      return
+    }
+
+    if (!stakeTouched) {
+      toast.error('Please enter a stake amount')
+      submittingRef.current = false
       return
     }
 
@@ -107,6 +142,7 @@ const PredictionForm = ({ onClose, match: initialMatch = null, matches: provided
     } else {
       toast.error(result.error)
     }
+    submittingRef.current = false
   }
 
   return (
@@ -126,7 +162,7 @@ const PredictionForm = ({ onClose, match: initialMatch = null, matches: provided
             <div>
               <h2 className="text-2xl font-bold">Make a Prediction</h2>
               <p className="text-text-secondary mt-1">
-                Step {step} of 3 • Balance: {points} PTS
+                Step {step} of 2 • Balance: {points} PTS
               </p>
             </div>
             <button
@@ -138,14 +174,14 @@ const PredictionForm = ({ onClose, match: initialMatch = null, matches: provided
           </div>
 
           <div className="flex items-center justify-between mt-6">
-            {[1, 2, 3].map((stepNum) => (
+            {[1, 2].map((stepNum) => (
               <div key={stepNum} className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   step >= stepNum ? 'bg-primary text-white' : 'bg-card text-text-secondary'
                 }`}>
                   {stepNum}
                 </div>
-                {stepNum < 3 && (
+                {stepNum < 2 && (
                   <div className={`w-24 h-1 mx-2 ${
                     step > stepNum ? 'bg-primary' : 'bg-card'
                   }`} />
@@ -280,44 +316,17 @@ const PredictionForm = ({ onClose, match: initialMatch = null, matches: provided
                 <div className="space-y-2">
                   <input
                     type="range"
-                    min="50"
-                    max="95"
-                    step="5"
+                    min="0"
+                    max="100"
+                    step="1"
                     value={formData.confidence}
-                    onChange={(e) => setFormData({ ...formData, confidence: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, confidence: parseInt(e.target.value, 10) })}
                     className="w-full"
                   />
                   <div className="flex justify-between text-sm text-text-secondary">
-                    <span>50%</span>
+                    <span>0%</span>
                     <span className="font-bold text-primary">{formData.confidence}%</span>
-                    <span>95%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-6">
-              <h3 className="text-xl font-bold">Confirm & Stake</h3>
-
-              <div className="bg-card rounded-xl p-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm text-text-secondary">Match</div>
-                    <div className="font-bold">{formData.match}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-text-secondary">Prediction</div>
-                    <div className="font-bold text-primary">{formData.prediction}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-text-secondary">Odds</div>
-                    <div className="font-bold">{formData.odds}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-text-secondary">Confidence</div>
-                    <div className="font-bold">{formData.confidence}%</div>
+                    <span>100%</span>
                   </div>
                 </div>
               </div>
@@ -332,47 +341,40 @@ const PredictionForm = ({ onClose, match: initialMatch = null, matches: provided
                   </span>
                 </div>
 
-                <div className="space-y-4">
+                <div className="flex items-center gap-3">
                   <input
-                    type="range"
-                    min={minStake}
-                    max={Math.min(points, 500)}
-                    step="10"
-                    value={formData.stake}
-                    onChange={(e) => setFormData({ ...formData, stake: parseInt(e.target.value) })}
-                    className="w-full"
+                    type="number"
+                    min="0"
+                    max={points}
+                    value={stakeTouched && formData.stake === 0 ? '' : formData.stake}
+                    placeholder="Enter amount"
+                    onChange={(e) => {
+                      if (e.target.value === '') {
+                        setStakeTouched(true)
+                        setFormData({ ...formData, stake: 0 })
+                        return
+                      }
+                      const nextValue = parseInt(e.target.value, 10)
+                      setStakeTouched(true)
+                      setFormData({
+                        ...formData,
+                        stake: Number.isNaN(nextValue) ? 0 : Math.max(nextValue, 0)
+                      })
+                      }}
+                    className="input-field w-32"
                   />
-
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      min={minStake}
-                      max={points}
-                      value={formData.stake}
-                      onChange={(e) => setFormData({ ...formData, stake: parseInt(e.target.value) || minStake })}
-                      className="input-field w-32"
-                    />
-                    <span className="text-sm text-text-secondary">PTS</span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    {[10, 50, 100, 250, 500].map((amount) => (
-                      <button
-                        key={amount}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, stake: amount })}
-                        className={`px-4 py-2 rounded-lg ${
-                          formData.stake === amount
-                            ? 'bg-primary text-white'
-                            : 'bg-card text-text-secondary hover:text-white'
-                        }`}
-                        disabled={amount > points}
-                      >
-                        {amount}
-                      </button>
-                    ))}
-                  </div>
+                  <span className="text-sm text-text-secondary">PTS</span>
                 </div>
+                {stakeTouched && formData.stake > points && (
+                  <div className="text-sm text-red-400 mt-2">
+                    Stake amount exceeds your balance
+                  </div>
+                )}
+                {stakeTouched && formData.stake > 0 && formData.stake < minStake && (
+                  <div className="text-sm text-red-400 mt-2">
+                    Stake amount too low
+                  </div>
+                )}
               </div>
 
               <div className="bg-gradient-to-r from-green-900/20 to-green-500/10 border border-green-500/30 rounded-xl p-6">
@@ -414,11 +416,12 @@ const PredictionForm = ({ onClose, match: initialMatch = null, matches: provided
               <div></div>
             )}
 
-            {step < 3 ? (
+            {step < 2 ? (
               <button
                 type="button"
                 onClick={() => setStep(step + 1)}
                 className="btn-primary"
+                disabled={!canContinue}
               >
                 Continue
               </button>
@@ -426,6 +429,7 @@ const PredictionForm = ({ onClose, match: initialMatch = null, matches: provided
               <button
                 type="submit"
                 className="btn-primary"
+                disabled={!canSubmit}
               >
                 Place Prediction ({formData.stake} PTS)
               </button>
