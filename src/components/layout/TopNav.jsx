@@ -84,7 +84,7 @@ const TopNav = () => {
     }
   }
 
-  const unreadNotifications = notifications.filter(n => !n.read).length
+  const unreadNotifications = (notifications || []).filter(n => !n.read).length
 
   return (
     <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-card px-4 md:px-6 py-4">

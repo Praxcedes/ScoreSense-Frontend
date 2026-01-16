@@ -1,134 +1,88 @@
-import React, { createContext, useState, useContext, useEffect, useRef } from 'react'
-import io from 'socket.io-client'
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { io } from 'socket.io-client'
 import { toast } from 'react-hot-toast'
 
 export const WebSocketContext = createContext(null)
 
 export const useWebSocket = () => {
-  const context = useContext(WebSocketContext)
-  if (!context) {
-    console.warn('useWebSocket must be used within WebSocketProvider')
-    // Return a mock object to prevent destructuring errors
+  const ctx = useContext(WebSocketContext)
+  if (!ctx) {
     return {
       isConnected: false,
-      notifications: [],
+      socket: null,
       subscribe: () => {},
       unsubscribe: () => {},
-      send: () => {},
-      subscribeToMatch: () => {},
-      unsubscribeFromMatch: () => {},
-      socket: null
+      send: () => {}
     }
   }
-  return context
+  return ctx
 }
 
 export const WebSocketProvider = ({ children }) => {
-  const [isConnected, setIsConnected] = useState(false)
-  const [notifications, setNotifications] = useState([])
   const socketRef = useRef(null)
-  const reconnectAttempts = useRef(0)
-  const maxReconnectAttempts = 5
+  const [isConnected, setIsConnected] = useState(false)
 
   useEffect(() => {
-    connectWebSocket()
+    const token = localStorage.getItem('accessToken')
 
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect()
-      }
-    }
-  }, [])
-
-  const connectWebSocket = () => {
-    const token = localStorage.getItem('scoresense_token')
-    const wsUrl = import.meta.env.VITE_SOCKET_URL
-      || import.meta.env.VITE_WS_URL
-      || (import.meta.env.DEV
-        ? 'http://localhost:10000'
+    const baseUrl =
+      import.meta.env.VITE_SOCKET_URL ||
+      import.meta.env.VITE_WS_URL ||
+      (import.meta.env.VITE_API_URL
+        ? import.meta.env.VITE_API_URL.replace('/api', '')
         : 'https://scoresense-africa-backend.onrender.com')
-    
-    socketRef.current = io(wsUrl, {
+
+    socketRef.current = io(baseUrl, {
       path: '/socket.io',
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: maxReconnectAttempts,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+      transports: ['websocket'],
+      auth: {
+        token: token ? `Bearer ${token}` : undefined
+      }
     })
 
     socketRef.current.on('connect', () => {
-      console.log('🔗 WebSocket Connected')
       setIsConnected(true)
-      reconnectAttempts.current = 0
-      toast.success('Live updates connected')
+      console.log('[WS] connected')
     })
 
-    socketRef.current.on('disconnect', (reason) => {
-      console.log('🔌 WebSocket Disconnected:', reason)
+    socketRef.current.on('disconnect', () => {
       setIsConnected(false)
-      if (reason === 'io server disconnect') {
-        setTimeout(() => socketRef.current.connect(), 1000)
-      }
+      console.log('[WS] disconnected')
     })
 
-    socketRef.current.on('connect_error', (error) => {
-      console.error('❌ WebSocket Connection Error:', error.message)
-      setIsConnected(false)
-      
-      if (reconnectAttempts.current < maxReconnectAttempts) {
-        reconnectAttempts.current++
-        const delay = Math.min(1000 * reconnectAttempts.current, 10000)
-        setTimeout(() => socketRef.current.connect(), delay)
-      }
+    socketRef.current.on('connect_error', (err) => {
+      console.error('[WS] connection error:', err.message)
     })
 
-    socketRef.current.on('notification', (data) => {
-      console.log('📢 New notification:', data)
-      setNotifications(prev => [data, ...prev.slice(0, 9)])
-    })
-  }
-
-  const subscribe = (event, callback) => {
-    if (socketRef.current) {
-      socketRef.current.on(event, callback)
+    return () => {
+      socketRef.current?.disconnect()
     }
+  }, [])
+
+  const subscribe = (event, cb) => {
+    socketRef.current?.on(event, cb)
   }
 
-  const unsubscribe = (event, callback) => {
-    if (socketRef.current) {
-      socketRef.current.off(event, callback)
+  const unsubscribe = (event, cb) => {
+    socketRef.current?.off(event, cb)
+  }
+
+  const send = (event, payload) => {
+    if (isConnected) {
+      socketRef.current?.emit(event, payload)
     }
-  }
-
-  const send = (event, data) => {
-    if (socketRef.current && isConnected) {
-      socketRef.current.emit(event, data)
-    }
-  }
-
-  const subscribeToMatch = (matchId) => {
-    send('subscribe_match', matchId)
-  }
-
-  const unsubscribeFromMatch = (matchId) => {
-    send('unsubscribe_match', matchId)
-  }
-
-  const value = {
-    isConnected,
-    notifications,
-    subscribe,
-    unsubscribe,
-    send,
-    subscribeToMatch,
-    unsubscribeFromMatch,
-    socket: socketRef.current
   }
 
   return (
-    <WebSocketContext.Provider value={value}>
+    <WebSocketContext.Provider
+      value={{
+        socket: socketRef.current,
+        isConnected,
+        subscribe,
+        unsubscribe,
+        send
+      }}
+    >
       {children}
     </WebSocketContext.Provider>
   )
