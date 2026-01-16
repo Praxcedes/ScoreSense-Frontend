@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { adminService } from '../../services/admin.service'
+import adminService from '../../services/admin.service'
 import { toast } from 'react-hot-toast'
 
 const Predictions = () => {
@@ -8,7 +8,7 @@ const Predictions = () => {
   useEffect(() => {
     const fetchPredictions = async () => {
       try {
-        const response = await adminService.listPredictions({ page: 1, per_page: 20 })
+        const response = await adminService.listPredictions({ page: 1, perPage: 20 })
         setPredictions(response.predictions || [])
       } catch (error) {
         toast.error(error?.error || 'Failed to load predictions')

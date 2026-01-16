@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { adminService } from '../../services/admin.service'
+import adminService from '../../services/admin.service'
 import { toast } from 'react-hot-toast'
 
 const Transactions = () => {
@@ -8,7 +8,7 @@ const Transactions = () => {
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
-        const response = await adminService.listTransactions({ page: 1, per_page: 20 })
+        const response = await adminService.listTransactions({ page: 1, perPage: 20 })
         setTransactions(response.transactions || [])
       } catch (error) {
         toast.error(error?.error || 'Failed to load transactions')

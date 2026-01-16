@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Check, X, ShieldAlert } from 'lucide-react'
-import { adminService } from '../../services/admin.service'
+import adminService from '../../services/admin.service'
 import { useAuth } from '../../hooks/useAuth'
 import { toast } from 'react-hot-toast'
 

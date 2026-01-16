@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { adminService } from '../../services/admin.service'
+import adminService from '../../services/admin.service'
 import { toast } from 'react-hot-toast'
 
 const Tournaments = () => {
@@ -8,7 +8,7 @@ const Tournaments = () => {
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
-        const response = await adminService.listTournaments({ page: 1, per_page: 20 })
+        const response = await adminService.listTournaments({ page: 1, perPage: 20 })
         setTournaments(response.tournaments || [])
       } catch (error) {
         toast.error(error?.error || 'Failed to load tournaments')
