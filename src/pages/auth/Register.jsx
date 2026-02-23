@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { UserPlus, User, Mail, Lock, Eye, EyeOff, Trophy } from 'lucide-react'
+import { UserPlus, User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import appLogo from '../../assets/ScoreSense Logo.png'
 
 const Register = () => {
   const { register } = useAuth()
@@ -27,8 +28,8 @@ const Register = () => {
       return
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters')
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters')
       return
     }
 
@@ -62,8 +63,8 @@ const Register = () => {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-green-400 rounded-2xl mb-4">
-            <Trophy className="text-white" size={32} />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-card border border-border rounded-2xl mb-4 overflow-hidden">
+            <img src={appLogo} alt="ScoreSense logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-primary bg-clip-text text-transparent">
             Join ScoreSense Africa
@@ -141,7 +142,7 @@ const Register = () => {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              <p className="text-xs text-text-secondary mt-2">At least 6 characters</p>
+              <p className="text-xs text-text-secondary mt-2">Minimum 8 characters</p>
             </div>
 
             <div>

@@ -1,112 +1,93 @@
-import React, { createContext, useState, useContext, useEffect } from 'react'
-import { useWebSocket } from '../hooks/useWebSocket'
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react'
 import { matchesService } from '../services/matches.service'
 
-export const MatchesContext = createContext({})
+const defaultContextValue = {
+  liveMatches: [],
+  upcomingMatches: [],
+  featuredMatches: [],
+  loading: false,
+  error: null,
+  refreshMatches: () => Promise.resolve(),
+  getMatchById: () => null,
+  searchMatches: async () => []
+}
 
-export const useMatches = () => useContext(MatchesContext)
+export const MatchesContext = createContext(defaultContextValue)
+
+export const useMatches = () => {
+  const context = useContext(MatchesContext)
+  return context
+}
 
 export const MatchesProvider = ({ children }) => {
   const [liveMatches, setLiveMatches] = useState([])
   const [upcomingMatches, setUpcomingMatches] = useState([])
   const [featuredMatches, setFeaturedMatches] = useState([])
   const [loading, setLoading] = useState(true)
-  const { subscribe, unsubscribe, isConnected } = useWebSocket()
+  const [error, setError] = useState(null)
 
-  useEffect(() => {
-    fetchMatches()
-  }, [])
-
-  // Subscribe to WebSocket events only when connected
-  useEffect(() => {
-    if (!isConnected) return
-
-    subscribe('live_score_update', handleLiveScoreUpdate)
-    subscribe('match_status_update', handleMatchStatusUpdate)
-    subscribe('new_goal', handleNewGoal)
-    subscribe('match_started', handleMatchStarted)
-
-    return () => {
-      unsubscribe('live_score_update')
-      unsubscribe('match_status_update')
-      unsubscribe('new_goal')
-      unsubscribe('match_started')
-    }
-  }, [isConnected])
-
-  const fetchMatches = async () => {
+  const fetchMatches = useCallback(async () => {
     try {
       setLoading(true)
-      const [liveData, upcomingData, featuredData] = await Promise.all([
-        matchesService.getLiveMatches().catch(() => []),
-        matchesService.getUpcomingMatches().catch(() => []),
-        matchesService.getFeaturedMatches().catch(() => [])
+      setError(null)
+
+      const [liveResponse, upcomingResponse, featuredResponse] = await Promise.all([
+        matchesService.getLiveMatches(),
+        matchesService.getUpcomingMatches(5, null, 4328),
+        matchesService.getFeaturedMatches()
       ])
-      setLiveMatches(liveData)
-      setUpcomingMatches(upcomingData)
-      setFeaturedMatches(featuredData)
+
+      if (liveResponse?.success) {
+        setLiveMatches(liveResponse.matches || [])
+      } else {
+        console.warn('Failed to load live matches:', liveResponse?.error)
+        setLiveMatches([])
+      }
+
+      if (upcomingResponse?.success) {
+        setUpcomingMatches(upcomingResponse.matches || [])
+      } else {
+        console.warn('Failed to load upcoming matches:', upcomingResponse?.error)
+        setUpcomingMatches([])
+      }
+
+      if (featuredResponse?.success) {
+        setFeaturedMatches(featuredResponse.matches || [])
+      } else {
+        console.warn('Failed to load featured matches:', featuredResponse?.error)
+        setFeaturedMatches([])
+      }
     } catch (error) {
       console.error('Failed to fetch matches:', error)
+      setError('Failed to load matches. Please try again.')
+      setLiveMatches([])
+      setUpcomingMatches([])
+      setFeaturedMatches([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const handleLiveScoreUpdate = (data) => {
-    setLiveMatches(prev =>
-      prev.map(match =>
-        match.id === data.matchId ? { ...match, ...data.updates } : match
-      )
-    )
-  }
-
-  const handleMatchStatusUpdate = (data) => {
-    const updateMatch = (matches) =>
-      matches.map(match =>
-        match.id === data.matchId ? { ...match, status: data.status } : match
-      )
-
-    setLiveMatches(updateMatch)
-    setUpcomingMatches(updateMatch)
-  }
-
-  const handleNewGoal = (data) => {
-    setLiveMatches(prev =>
-      prev.map(match => {
-        if (match.id === data.matchId) {
-          const updatedMatch = { ...match }
-          if (data.team === 'home') {
-            updatedMatch.homeScore = (updatedMatch.homeScore || 0) + 1
-          } else {
-            updatedMatch.awayScore = (updatedMatch.awayScore || 0) + 1
-          }
-
-          updatedMatch.events = [
-            ...(updatedMatch.events || []),
-            {
-              type: 'goal',
-              team: data.team,
-              player: data.player,
-              minute: data.minute
-            }
-          ]
-
-          return updatedMatch
-        }
-        return match
-      })
-    )
-  }
-
-  const handleMatchStarted = (data) => {
-    if (!data.match) return
-    setUpcomingMatches(prev => prev.filter(m => m.id !== data.matchId))
-    setLiveMatches(prev => [...prev, data.match])
-  }
+  useEffect(() => {
+    fetchMatches()
+  }, [fetchMatches])
 
   const getMatchById = (id) => {
-    const allMatches = [...liveMatches, ...upcomingMatches]
-    return allMatches.find(match => match.id === id)
+    const allMatches = [...liveMatches, ...upcomingMatches, ...featuredMatches]
+    return allMatches.find((match) => match.id === id)
+  }
+
+  const searchMatches = async (query) => {
+    try {
+      const response = await matchesService.searchMatches(query, 10)
+      if (response.success) {
+        return response.matches || []
+      }
+      return []
+    } catch (error) {
+      console.error('Search error:', error)
+      return []
+    }
   }
 
   const value = {
@@ -114,8 +95,10 @@ export const MatchesProvider = ({ children }) => {
     upcomingMatches,
     featuredMatches,
     loading,
+    error,
     refreshMatches: fetchMatches,
-    getMatchById
+    getMatchById,
+    searchMatches
   }
 
   return (

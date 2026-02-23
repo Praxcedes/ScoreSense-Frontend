@@ -1,23 +1,34 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Search, Bell, ChevronDown, Wifi, WifiOff } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { usePoints } from '../../hooks/usePoints'
 import { useAuth } from '../../hooks/useAuth'
 import { useWebSocket } from '../../hooks/useWebSocket'
 import { motion, AnimatePresence } from 'framer-motion'
+import { matchesService } from '../../services/matches.service'
+import Avatar from '../common/Avatar'
 
 const TopNav = () => {
+  const navigate = useNavigate()
   const { points } = usePoints()
   const { user } = useAuth()
   const { isConnected, notifications } = useWebSocket()
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [showSearchResults, setShowSearchResults] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const searchRef = useRef(null)
   const notificationsRef = useRef(null)
   const profileRef = useRef(null)
 
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchResults(false)
+      }
       if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
         setShowNotifications(false)
       }
@@ -30,23 +41,137 @@ const TopNav = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const unreadNotifications = notifications.filter(n => !n.read).length
+  useEffect(() => {
+    const query = searchQuery.trim()
+    if (query.length < 2) {
+      setSearchResults([])
+      setIsSearching(false)
+      return
+    }
+
+    let isActive = true
+    setIsSearching(true)
+    const handle = setTimeout(async () => {
+      try {
+        const response = await matchesService.searchMatches(query, 8)
+        if (!isActive) return
+        setSearchResults(response?.matches || [])
+      } catch (error) {
+        if (!isActive) return
+        setSearchResults([])
+      } finally {
+        if (isActive) setIsSearching(false)
+      }
+    }, 300)
+
+    return () => {
+      isActive = false
+      clearTimeout(handle)
+    }
+  }, [searchQuery])
+
+  const handleSearchChange = (event) => {
+    const nextValue = event.target.value
+    setSearchQuery(nextValue)
+    setShowSearchResults(nextValue.trim().length >= 2)
+  }
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault()
+    if (searchQuery.trim()) {
+      navigate('/matches')
+      setShowSearchResults(false)
+    }
+  }
+
+  const unreadNotifications = (notifications || []).filter(n => !n.read).length
 
   return (
     <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-card px-4 md:px-6 py-4">
       <div className="flex items-center justify-between">
         {/* Left Side */}
-        <div className="flex-1 max-w-xl">
-          <div className="relative">
+        <div className="flex-1 max-w-xl" ref={searchRef}>
+          <form className="relative" onSubmit={handleSearchSubmit}>
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary" size={20} />
             <input
               type="text"
               placeholder="Search matches, teams, or players..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
+              onFocus={() => setShowSearchResults(searchQuery.trim().length >= 2)}
               className="w-full pl-10 pr-4 py-2.5 bg-card border border-card rounded-xl text-white placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
             />
-          </div>
+          </form>
+
+          <AnimatePresence>
+            {showSearchResults && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="absolute left-0 right-0 mt-2 bg-surface border border-card rounded-xl shadow-2xl overflow-hidden z-50"
+              >
+                {isSearching ? (
+                  <div className="px-4 py-6 text-center text-sm text-text-secondary">
+                    Searching...
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  <div className="max-h-80 overflow-y-auto">
+                    {searchResults.map((match) => {
+                      const homeTeam = match?.homeTeam || match?.home_team || 'Home'
+                      const awayTeam = match?.awayTeam || match?.away_team || 'Away'
+                      const league = match?.league || match?.league_name || 'League'
+                      const status = match?.status || match?.match_status || 'upcoming'
+                      const displayName = match?.name || `${homeTeam} vs ${awayTeam}`
+                      const homeLogo = match?.homeLogo || match?.home_logo
+                      const awayLogo = match?.awayLogo || match?.away_logo
+
+                      return (
+                        <button
+                          key={match?.id ?? match?.match_id ?? match?.event_id ?? displayName}
+                          type="button"
+                          onClick={() => {
+                            setShowSearchResults(false)
+                            setSearchQuery(displayName)
+                            navigate('/matches')
+                          }}
+                          className="w-full text-left px-4 py-3 border-b border-card last:border-b-0 hover:bg-hover transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center -space-x-2">
+                                <div className="w-7 h-7 rounded-full bg-card border border-card overflow-hidden flex items-center justify-center text-[10px] font-semibold">
+                                  {homeLogo ? (
+                                    <img src={homeLogo} alt={`${homeTeam} logo`} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span>{homeTeam.charAt(0)}</span>
+                                  )}
+                                </div>
+                                <div className="w-7 h-7 rounded-full bg-card border border-card overflow-hidden flex items-center justify-center text-[10px] font-semibold">
+                                  {awayLogo ? (
+                                    <img src={awayLogo} alt={`${awayTeam} logo`} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span>{awayTeam.charAt(0)}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <span className="font-medium">{displayName}</span>
+                            </div>
+                            <span className="text-xs text-text-secondary uppercase">{status}</span>
+                          </div>
+                          <div className="text-xs text-text-secondary mt-1">{league}</div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="px-4 py-6 text-center text-sm text-text-secondary">
+                    No matches found.
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Right Side */}
@@ -133,9 +258,17 @@ const TopNav = () => {
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center space-x-3 p-2 hover:bg-hover rounded-xl transition-colors"
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-card to-hover rounded-full flex items-center justify-center">
-                <span className="font-bold">{user?.username?.charAt(0) || 'U'}</span>
-              </div>
+              <Avatar
+                size="medium"
+                alt={user?.username}
+                src={
+                  user?.avatar ||
+                  user?.avatarUrl ||
+                  user?.profileImage ||
+                  user?.profile_image ||
+                  user?.photo
+                }
+              />
               <div className="hidden lg:block text-left">
                 <p className="font-semibold text-sm">{user?.username || 'User'}</p>
                 <p className="text-xs text-text-secondary">#{user?.rank || 'Unranked'}</p>

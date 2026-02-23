@@ -1,4 +1,3 @@
-import { useContext } from 'react'
-import { PointsContext } from '../context/PointsContext'
+import { usePoints } from '../context/PointsContext'
 
-export const usePoints = () => useContext(PointsContext)
+export { usePoints }

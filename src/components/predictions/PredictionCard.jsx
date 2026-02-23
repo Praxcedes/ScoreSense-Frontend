@@ -12,6 +12,34 @@ import {
 } from 'lucide-react'
 
 const PredictionCard = ({ prediction, index }) => {
+  const getPlacedLabel = () => {
+    const placedAt = prediction.createdAt
+      || prediction.created_at
+      || prediction.placedAt
+      || prediction.placed_at
+      || prediction.time
+      || prediction.timestamp
+      || prediction.raw?.created_at
+      || prediction.raw?.placed_at
+      || prediction.raw?.time
+      || prediction.raw?.timestamp
+
+    if (!placedAt) {
+      return 'Placed: —'
+    }
+
+    const placedDate = new Date(placedAt)
+    if (Number.isNaN(placedDate.getTime())) {
+      return 'Placed: —'
+    }
+
+    const now = new Date()
+    const isToday = placedDate.toDateString() === now.toDateString()
+    const timeLabel = placedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const dateLabel = placedDate.toLocaleDateString([], { month: 'short', day: 'numeric' })
+
+    return isToday ? `Placed: Today at ${timeLabel}` : `Placed: ${dateLabel} at ${timeLabel}`
+  }
   const getStatusColor = (status) => {
     switch (status) {
       case 'won': return 'text-green-400 bg-green-500/20 border-green-500/30'
@@ -37,9 +65,9 @@ const PredictionCard = ({ prediction, index }) => {
       transition={{ delay: index * 0.1 }}
       className="card p-6"
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h4 className="font-bold text-lg">{prediction.match}</h4>
+      <div className="flex items-start justify-between mb-4 gap-3">
+        <div className="flex-1 min-w-0">
+          <h4 className="font-bold text-lg break-words">{prediction.match}</h4>
           <div className="flex items-center space-x-4 mt-2">
             <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-lg ${getStatusColor(prediction.status)}`}>
               {getStatusIcon(prediction.status)}
@@ -47,12 +75,12 @@ const PredictionCard = ({ prediction, index }) => {
             </span>
             <span className="text-text-secondary flex items-center space-x-1">
               <BarChart3 size={14} />
-              <span>{prediction.confidence}% confidence</span>
+              <span>{Number.isFinite(Number(prediction.confidence)) ? Math.round(Number(prediction.confidence)) : 0}% confidence</span>
             </span>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold">{prediction.odds}</div>
+        <div className="text-right min-w-[4rem]">
+          <div className="text-2xl font-bold break-words">{prediction.odds}</div>
           <div className="text-sm text-text-secondary">Odds</div>
         </div>
       </div>
@@ -63,7 +91,7 @@ const PredictionCard = ({ prediction, index }) => {
             <Target className="text-text-secondary" size={16} />
             <span className="text-sm text-text-secondary">Prediction</span>
           </div>
-          <div className="font-bold">{prediction.prediction}</div>
+          <div className="font-bold break-words">{prediction.prediction}</div>
         </div>
 
         <div className="bg-card p-4 rounded-xl">
@@ -71,7 +99,7 @@ const PredictionCard = ({ prediction, index }) => {
             <DollarSign className="text-text-secondary" size={16} />
             <span className="text-sm text-text-secondary">Stake</span>
           </div>
-          <div className="font-bold text-primary">{prediction.stake} PTS</div>
+          <div className="font-bold text-primary break-words">{prediction.stake} PTS</div>
         </div>
 
         <div className="bg-card p-4 rounded-xl">
@@ -79,7 +107,7 @@ const PredictionCard = ({ prediction, index }) => {
             <TrendingUp className="text-text-secondary" size={16} />
             <span className="text-sm text-text-secondary">Potential</span>
           </div>
-          <div className="font-bold text-green-400">{prediction.potential} PTS</div>
+          <div className="font-bold text-green-400 break-words">{prediction.potential} PTS</div>
         </div>
 
         <div className="bg-card p-4 rounded-xl">
@@ -89,7 +117,7 @@ const PredictionCard = ({ prediction, index }) => {
               {prediction.timeLeft ? 'Time Left' : 'Result'}
             </span>
           </div>
-          <div className={`font-bold ${
+          <div className={`font-bold break-words ${
             prediction.result?.startsWith('+') ? 'text-green-400' : 'text-red-400'
           }`}>
             {prediction.timeLeft || prediction.result}
@@ -100,7 +128,7 @@ const PredictionCard = ({ prediction, index }) => {
       <div className="flex items-center justify-between mt-6 pt-6 border-t border-card">
         <div className="flex items-center space-x-4">
           <div className="text-sm text-text-secondary">
-            Placed: Today at 14:30
+            {getPlacedLabel()}
           </div>
           <div className="text-sm text-text-secondary">
             ID: #{prediction.id.toString().padStart(6, '0')}
