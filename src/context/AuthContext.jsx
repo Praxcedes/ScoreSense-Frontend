@@ -1,10 +1,11 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { loginUser, registerUser, loginAdminUser, requestAdminAccess as requestAdminAccessApi } from '../services/authApi'
 import { userService } from '../services/user.service'
 import { toast } from 'react-hot-toast'
 
-export const AuthContext = createContext()
 
+export const AuthContext = createContext()
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -249,8 +250,8 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={value}>
       {children}
-    </AuthContext.Provider>
-  )
-}
+    </AuthContext.Provider>)
+
+  }
 
 export const useAuth = () => useContext(AuthContext)

@@ -301,3 +301,4 @@ export const PointsProvider = ({ children }) => {
     </PointsContext.Provider>
   )
 }
+
