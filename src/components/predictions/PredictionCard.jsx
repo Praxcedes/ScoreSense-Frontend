@@ -12,6 +12,34 @@ import {
 } from 'lucide-react'
 
 const PredictionCard = ({ prediction, index }) => {
+  const getPlacedLabel = () => {
+    const placedAt = prediction.createdAt
+      || prediction.created_at
+      || prediction.placedAt
+      || prediction.placed_at
+      || prediction.time
+      || prediction.timestamp
+      || prediction.raw?.created_at
+      || prediction.raw?.placed_at
+      || prediction.raw?.time
+      || prediction.raw?.timestamp
+
+    if (!placedAt) {
+      return 'Placed: —'
+    }
+
+    const placedDate = new Date(placedAt)
+    if (Number.isNaN(placedDate.getTime())) {
+      return 'Placed: —'
+    }
+
+    const now = new Date()
+    const isToday = placedDate.toDateString() === now.toDateString()
+    const timeLabel = placedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const dateLabel = placedDate.toLocaleDateString([], { month: 'short', day: 'numeric' })
+
+    return isToday ? `Placed: Today at ${timeLabel}` : `Placed: ${dateLabel} at ${timeLabel}`
+  }
   const getStatusColor = (status) => {
     switch (status) {
       case 'won': return 'text-green-400 bg-green-500/20 border-green-500/30'
@@ -47,7 +75,7 @@ const PredictionCard = ({ prediction, index }) => {
             </span>
             <span className="text-text-secondary flex items-center space-x-1">
               <BarChart3 size={14} />
-              <span>{prediction.confidence}% confidence</span>
+              <span>{Number.isFinite(Number(prediction.confidence)) ? Math.round(Number(prediction.confidence)) : 0}% confidence</span>
             </span>
           </div>
         </div>
@@ -100,7 +128,7 @@ const PredictionCard = ({ prediction, index }) => {
       <div className="flex items-center justify-between mt-6 pt-6 border-t border-card">
         <div className="flex items-center space-x-4">
           <div className="text-sm text-text-secondary">
-            Placed: Today at 14:30
+            {getPlacedLabel()}
           </div>
           <div className="text-sm text-text-secondary">
             ID: #{prediction.id.toString().padStart(6, '0')}

@@ -105,8 +105,35 @@ class WalletService {
     return this.isConnected || localStorage.getItem('walletConnected') === 'true'
   }
 
+  async ensureSigner() {
+    if (this.signer && this.walletAddress) {
+      return true
+    }
+    if (!this.getIsConnected()) {
+      return false
+    }
+    if (typeof window.ethereum === 'undefined') {
+      return false
+    }
+
+    const ethersModule = await import('ethers')
+    const ethers = ethersModule.default || ethersModule
+
+    if (ethers.BrowserProvider) {
+      this.provider = this.provider || new ethers.BrowserProvider(window.ethereum)
+      this.signer = await this.provider.getSigner()
+    } else {
+      this.provider = this.provider || new ethers.providers.Web3Provider(window.ethereum)
+      this.signer = this.provider.getSigner()
+    }
+
+    this.walletAddress = this.walletAddress || await this.signer.getAddress()
+    return Boolean(this.walletAddress)
+  }
+
   async signMessage(message) {
-    if (!this.signer || !this.walletAddress) {
+    const ready = await this.ensureSigner()
+    if (!ready) {
       throw new Error('Wallet not connected')
     }
 

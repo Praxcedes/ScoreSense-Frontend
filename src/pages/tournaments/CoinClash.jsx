@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react' 
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   Trophy,
@@ -27,7 +27,6 @@ import { useWeb3 } from '../../hooks/useWeb3'
 import { getContractCode, getCoinClashAddress, getPointsTokenId } from '../../services/blockchain'
 import CoinClashAnimation from '../../components/CoinClashAnimation'
 import { toast } from 'react-hot-toast'
-import { useAuth } from '../../hooks/useAuth'
 
 const CoinClash = () => {
   const [activeTab, setActiveTab] = useState('available')
@@ -37,14 +36,13 @@ const CoinClash = () => {
   const [error, setError] = useState(null)
   const [pointsBalance, setPointsBalance] = useState(0)
   const [isApproved, setIsApproved] = useState(false)
+  const [countdownNow, setCountdownNow] = useState(Date.now())
   const [showLiveModal, setShowLiveModal] = useState(false)
   const [liveSession, setLiveSession] = useState(null)
   const [liveMode, setLiveMode] = useState('play')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [createEntry, setCreateEntry] = useState(100)
-  const { user } = useAuth()
   const { address, contract, readContract, pointsContract, pointsReadContract, connectWallet, ensureNetwork, connecting } = useWeb3()
-  const isAdmin = ['admin', 'superadmin'].includes(String(user?.role || '').toLowerCase())
 
   const tabs = [
     { id: 'available', name: 'Available' },
@@ -56,6 +54,13 @@ const CoinClash = () => {
   useEffect(() => {
     fetchCoinClashSessions()
   }, [address, readContract])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCountdownNow(Date.now())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   const mapStateToStatus = (state) => {
     switch (Number(state)) {
@@ -85,6 +90,44 @@ const CoinClash = () => {
     }
   }
 
+  const formatCountdown = (isoString, nowMs = Date.now()) => {
+    if (!isoString) return null
+    const target = new Date(isoString)
+    if (Number.isNaN(target.getTime())) return null
+    const diffMs = target.getTime() - nowMs
+    if (diffMs <= 0) return null
+    const totalSeconds = Math.floor(diffMs / 1000)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    if (minutes <= 0) return `${seconds}s`
+    return `${minutes}m ${String(seconds).padStart(2, '0')}s`
+  }
+
+  const getRoundLabel = (session) => {
+    const hasRound = session?.round_active === true || session?.current_round_display != null
+    if (!hasRound) return null
+    const roundValue = session?.current_round_display ?? session?.current_round
+    if (roundValue === null || roundValue === undefined) return null
+    return `Round ${roundValue}`
+  }
+
+  const getWaitingMessages = (session) => {
+    const messages = []
+    if (session?.auto_start_when_full) {
+      messages.push('Starts immediately when full')
+    }
+    if (session?.auto_start_min_players && session?.auto_start_after_seconds) {
+      const minutes = Math.round(session.auto_start_after_seconds / 60)
+      messages.push(`Auto-starts after ${minutes} min if ${session.auto_start_min_players}+ players join`)
+    }
+    if (session?.auto_cancel_after_seconds) {
+      const minutes = Math.round(session.auto_cancel_after_seconds / 60)
+      const minPlayers = session.auto_start_min_players || 2
+      messages.push(`Auto-cancels after ${minutes} min if <${minPlayers} players join`)
+    }
+    return messages
+  }
+
   const ensureWalletReady = async () => {
     if (!address) {
       const result = await connectWallet()
@@ -93,6 +136,16 @@ const CoinClash = () => {
       }
     }
     await ensureNetwork()
+  }
+
+  const ensureApproval = async () => {
+    if (isApproved) return
+    if (!pointsContract) {
+      throw new Error('Points contract not available')
+    }
+    const tx = await pointsContract.setApprovalForAll(getCoinClashAddress(), true)
+    await tx.wait()
+    setIsApproved(true)
   }
 
   const fetchCoinClashSessions = async () => {
@@ -142,6 +195,9 @@ const CoinClash = () => {
         const formatEther = ethers.formatEther || ethers.utils.formatEther
         const entryFee = Number(formatEther(entryFeeWei))
         const prizePool = Number(formatEther(prizePoolWei))
+        const now = Date.now()
+        const startAt = new Date(now + 300 * 1000).toISOString()
+        const cancelAt = new Date(now + 300 * 1000).toISOString()
 
         return {
           id: Number(id.toString()),
@@ -151,8 +207,17 @@ const CoinClash = () => {
           entry_points: Math.round(entryFee || tierInfo.entry),
           total_pot: Math.round(prizePool),
           current_round: Number(currentRound.toString()),
+          current_round_display: null,
+          round_active: Number(state) === 1,
           status: mapStateToStatus(state),
-          entryFeeWei: entryFeeWei.toString()
+          entryFeeWei: entryFeeWei.toString(),
+          auto_start_when_full: true,
+          auto_start_min_players: 2,
+          auto_start_after_seconds: 300,
+          auto_cancel_after_seconds: 300,
+          starts_at: startAt,
+          expires_at: cancelAt,
+          side_selection_mode: 'free'
         }
       })
 
@@ -199,6 +264,10 @@ const CoinClash = () => {
   }
 
   const joinSession = (sessionId) => {
+    if (!address) {
+      toast.error('Connect your wallet to join a game')
+      return
+    }
     const session = sessions.find(item => item.id === sessionId)
     if (!session) {
       toast.error('Session not found')
@@ -216,13 +285,7 @@ const CoinClash = () => {
         throw new Error('Wallet not connected')
       }
 
-      if (!pointsContract) {
-        throw new Error('Points contract not available')
-      }
-
-      if (!isApproved) {
-        throw new Error('Approve points before joining a tournament')
-      }
+      await ensureApproval()
 
       const tx = await contract.joinTournament(sessionId, choice)
       await tx.wait()
@@ -231,25 +294,6 @@ const CoinClash = () => {
       toast.success('Joined session successfully!')
     } catch (err) {
       toast.error(err.message || 'Error joining session. Please try again.')
-    }
-  }
-
-  const approvePoints = async () => {
-    if (!isAdmin) {
-      toast.error('Only admins can approve points for CoinClash.')
-      return
-    }
-    try {
-      await ensureWalletReady()
-      if (!pointsContract) {
-        throw new Error('Points contract not available')
-      }
-      const tx = await pointsContract.setApprovalForAll(getCoinClashAddress(), true)
-      await tx.wait()
-      setIsApproved(true)
-      toast.success('Points approval successful!')
-    } catch (err) {
-      toast.error(err.message || 'Failed to approve points.')
     }
   }
 
@@ -266,6 +310,10 @@ const CoinClash = () => {
   }
 
   const createSession = () => {
+    if (!address) {
+      toast.error('Connect your wallet to create a game')
+      return
+    }
     setCreateEntry(100)
     setShowCreateModal(true)
   }
@@ -276,6 +324,7 @@ const CoinClash = () => {
       if (!contract) {
         throw new Error('Wallet not connected')
       }
+      await ensureApproval()
 
       const entry = parseInt(createEntry, 10)
       const tier = entry === 300 ? 1 : entry === 500 ? 2 : 0
@@ -306,10 +355,6 @@ const CoinClash = () => {
   }
 
   const resolveRound = async (sessionId) => {
-    if (!isAdmin) {
-      toast.error('Only admins can resolve rounds.')
-      return
-    }
     try {
       await ensureWalletReady()
       if (!contract) {
@@ -382,19 +427,12 @@ const CoinClash = () => {
                 </div>
               )}
               <button
-                onClick={approvePoints}
-                disabled={!address || connecting || isApproved || !isAdmin}
-                className="px-4 py-2 bg-card border border-card text-sm rounded-lg hover:bg-hover transition disabled:opacity-60"
-              >
-                {isApproved ? 'Points Approved' : isAdmin ? 'Approve Points' : 'Admin Only'}
-              </button>
-              <button
                 onClick={createSession}
-                disabled={connecting}
+                disabled={connecting || !address}
                 className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg font-semibold hover:opacity-90 transition flex items-center space-x-2"
               >
                 <Gamepad2 size={20} />
-                <span>{connecting ? 'Connecting...' : 'Create Game'}</span>
+                <span>{connecting ? 'Connecting...' : address ? 'Create Game' : 'Connect Wallet'}</span>
               </button>
             </div>
           </div>
@@ -452,115 +490,139 @@ const CoinClash = () => {
 
       {/* Sessions Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredSessions.map((session) => (
-          <motion.div
-            key={session.id}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="card overflow-hidden"
-          >
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="font-bold text-lg">{session.name}</h3>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <div className={`px-2 py-1 rounded text-xs font-medium ${
-                      session.status === 'WAITING' ? 'bg-green-500/20 text-green-400' :
-                      session.status === 'ACTIVE' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-blue-500/20 text-blue-400'
-                    }`}>
-                      {session.status}
+        {filteredSessions.map((session) => {
+          const roundLabel = getRoundLabel(session)
+          const waitingMessages = getWaitingMessages(session)
+          const startCountdown = formatCountdown(session.starts_at, countdownNow)
+          const cancelCountdown = formatCountdown(session.expires_at, countdownNow)
+          const isCancelled = session.status === 'CANCELLED'
+          const duelMode = session.side_selection_mode === 'duel_auto_assign'
+
+          return (
+            <motion.div
+              key={session.id}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="card overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="font-bold text-lg">{session.name}</h3>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <div className={`px-2 py-1 rounded text-xs font-medium ${
+                        session.status === 'WAITING' ? 'bg-green-500/20 text-green-400' :
+                        session.status === 'ACTIVE' ? 'bg-yellow-500/20 text-yellow-400' :
+                        session.status === 'CANCELLED' ? 'bg-red-500/20 text-red-400' :
+                        'bg-blue-500/20 text-blue-400'
+                      }`}>
+                        {session.status === 'CANCELLED' ? 'Closed' : session.status}
+                      </div>
+                      {roundLabel && (
+                        <span className="text-sm text-text-secondary">{roundLabel}</span>
+                      )}
                     </div>
-                    <span className="text-sm text-text-secondary">Round {session.current_round}</span>
                   </div>
-                </div>
-                <div className="w-10 h-10 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl flex items-center justify-center">
-                  <Coins className="text-yellow-500" size={20} />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-text-secondary">Players</span>
-                    <span className="font-semibold">{session.current_players}/{session.max_players}</span>
-                  </div>
-                  <div className="w-full bg-card rounded-full h-2">
-                    <div 
-                      className="h-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full" 
-                      style={{ width: `${(session.current_players / session.max_players) * 100}%` }}
-                    ></div>
+                  <div className="w-10 h-10 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl flex items-center justify-center">
+                    <Coins className="text-yellow-500" size={20} />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-surface-soft rounded-lg p-3">
-                    <div className="text-sm text-text-secondary">Entry</div>
-                    <div className="font-bold text-lg">{session.entry_points} PTS</div>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <span className="text-text-secondary">Players</span>
+                      <span className="font-semibold">{session.current_players}/{session.max_players}</span>
+                    </div>
+                    <div className="w-full bg-card rounded-full h-2">
+                      <div 
+                        className="h-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full" 
+                        style={{ width: `${(session.current_players / session.max_players) * 100}%` }}
+                      ></div>
+                    </div>
                   </div>
-                  <div className="bg-surface-soft rounded-lg p-3">
-                    <div className="text-sm text-text-secondary">Pot</div>
-                    <div className="font-bold text-lg">{session.total_pot} PTS</div>
-                  </div>
-                </div>
-                {session.status === 'WAITING' && (
-                  <div className="text-xs text-text-secondary uppercase tracking-widest">
-                    Auto-starts after 5 min if 2+ players join
-                  </div>
-                )}
 
-                <button
-                  onClick={() => joinSession(session.id)}
-                  disabled={session.status !== 'WAITING' || session.current_players >= session.max_players}
-                  className={`w-full py-3 rounded-lg font-semibold transition ${
-                    session.status === 'WAITING' && session.current_players < session.max_players
-                      ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:opacity-90'
-                      : 'bg-card text-text-secondary cursor-not-allowed'
-                  }`}
-                >
-                  {session.status === 'WAITING' && session.current_players < session.max_players
-                    ? 'Join Game'
-                    : session.current_players >= session.max_players
-                    ? 'Full'
-                    : 'In Progress'}
-                </button>
-
-                {session.status === 'ACTIVE' && (
-                  <div className="grid grid-cols-3 gap-2 mt-3">
-                    <button
-                      onClick={() => submitChoice(session.id, 0)}
-                      className="py-2 rounded-lg bg-card text-sm hover:bg-hover transition"
-                    >
-                      Heads
-                    </button>
-                    <button
-                      onClick={() => submitChoice(session.id, 1)}
-                      className="py-2 rounded-lg bg-card text-sm hover:bg-hover transition"
-                    >
-                      Tails
-                    </button>
-                    <button
-                      onClick={() => resolveRound(session.id)}
-                      disabled={!isAdmin}
-                      className="py-2 rounded-lg bg-primary text-black text-sm hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      Resolve
-                    </button>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-surface-soft rounded-lg p-3">
+                      <div className="text-sm text-text-secondary">Entry</div>
+                      <div className="font-bold text-lg">{session.entry_points} PTS</div>
+                    </div>
+                    <div className="bg-surface-soft rounded-lg p-3">
+                      <div className="text-sm text-text-secondary">Pot</div>
+                      <div className="font-bold text-lg">{session.total_pot} PTS</div>
+                    </div>
                   </div>
-                )}
 
-                {session.status === 'ACTIVE' && (
+                  {duelMode && (
+                    <div className="text-xs text-text-secondary">
+                      Duel mode: opponent auto-assigned the opposite side.
+                    </div>
+                  )}
+
+                  {session.status === 'WAITING' && (
+                    <div className="text-xs text-text-secondary uppercase tracking-widest space-y-1">
+                      {waitingMessages.map((message) => (
+                        <div key={message}>{message}</div>
+                      ))}
+                      {startCountdown && <div>Starts in {startCountdown}</div>}
+                      {cancelCountdown && <div>Auto-cancels in {cancelCountdown}</div>}
+                    </div>
+                  )}
+
                   <button
-                    onClick={() => openLiveModal(session, 'play')}
-                    className="w-full mt-3 py-2 rounded-lg bg-surface text-sm font-semibold hover:bg-hover transition"
+                    onClick={() => joinSession(session.id)}
+                    disabled={isCancelled || session.status !== 'WAITING' || session.current_players >= session.max_players}
+                    className={`w-full py-3 rounded-lg font-semibold transition ${
+                      session.status === 'WAITING' && session.current_players < session.max_players && !isCancelled
+                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:opacity-90'
+                        : 'bg-card text-text-secondary cursor-not-allowed'
+                    }`}
                   >
-                    View Live
+                    {isCancelled
+                      ? 'Closed • Refund issued'
+                      : session.status === 'WAITING' && session.current_players < session.max_players
+                      ? 'Join Game'
+                      : session.current_players >= session.max_players
+                      ? 'Full'
+                      : 'In Progress'}
                   </button>
-                )}
+
+                  {session.status === 'ACTIVE' && (
+                    <div className="grid grid-cols-3 gap-2 mt-3">
+                      <button
+                        onClick={() => submitChoice(session.id, 0)}
+                        className="py-2 rounded-lg bg-card text-sm hover:bg-hover transition"
+                      >
+                        Heads
+                      </button>
+                      <button
+                        onClick={() => submitChoice(session.id, 1)}
+                        className="py-2 rounded-lg bg-card text-sm hover:bg-hover transition"
+                      >
+                        Tails
+                      </button>
+                      <button
+                        onClick={() => resolveRound(session.id)}
+                        className="py-2 rounded-lg bg-primary text-black text-sm hover:opacity-90 transition"
+                      >
+                        Resolve
+                      </button>
+                    </div>
+                  )}
+
+                  {session.status === 'ACTIVE' && (
+                    <button
+                      onClick={() => openLiveModal(session, 'play')}
+                      className="w-full mt-3 py-2 rounded-lg bg-surface text-sm font-semibold hover:bg-hover transition"
+                    >
+                      View Live
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          )
+        })}
       </div>
 
       {showLiveModal && liveSession && (
@@ -576,7 +638,10 @@ const CoinClash = () => {
               <div>
                 <h3 className="text-xl font-bold">{liveSession.name}</h3>
                 <p className="text-text-secondary text-sm">
-                  Round {liveSession.current_round} • {liveSession.current_players}/{liveSession.max_players} players
+                  {getRoundLabel(liveSession)
+                    ? `${getRoundLabel(liveSession)} • `
+                    : ''}
+                  {liveSession.current_players}/{liveSession.max_players} players
                 </p>
               </div>
               <div className="text-xs uppercase tracking-widest text-yellow-400">
@@ -588,7 +653,9 @@ const CoinClash = () => {
               {liveMode === 'join' ? (
                 <div className="text-center space-y-4">
                   <p className="text-sm text-text-secondary">
-                    Choose your side to join this tournament.
+                    {liveSession.side_selection_mode === 'duel_auto_assign'
+                      ? 'Choose your side. Opponent will be auto-assigned the opposite.'
+                      : 'Choose your side to join this tournament.'}
                   </p>
                   <div className="flex gap-3 justify-center">
                     <button
@@ -621,16 +688,23 @@ const CoinClash = () => {
                   </button>
                   <button
                     onClick={() => resolveRound(liveSession.id)}
-                    disabled={!isAdmin}
-                    className="px-4 py-2 rounded-lg bg-primary text-black text-sm hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="px-4 py-2 rounded-lg bg-primary text-black text-sm hover:opacity-90 transition"
                   >
                     Resolve
                   </button>
                 </div>
               )}
               {liveSession.status === 'WAITING' && (
-                <div className="text-xs text-text-secondary uppercase tracking-widest">
-                  Auto-starts after 5 min if 2+ players join
+                <div className="text-xs text-text-secondary uppercase tracking-widest space-y-1">
+                  {getWaitingMessages(liveSession).map((message) => (
+                    <div key={message}>{message}</div>
+                  ))}
+                  {formatCountdown(liveSession.starts_at) && (
+                    <div>Starts in {formatCountdown(liveSession.starts_at)}</div>
+                  )}
+                  {formatCountdown(liveSession.expires_at) && (
+                    <div>Auto-cancels in {formatCountdown(liveSession.expires_at)}</div>
+                  )}
                 </div>
               )}
             </div>

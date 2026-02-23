@@ -16,7 +16,7 @@ export default function Config() {
 }
 =======
 import React, { useEffect, useState } from 'react'
-import { adminService } from '../../services/admin.service'
+import adminService from '../../services/admin.service'
 import { toast } from 'react-hot-toast'
 
 const Config = () => {

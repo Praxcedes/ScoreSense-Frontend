@@ -14,6 +14,8 @@ const normalizeMatch = (match = {}) => {
   const rawStartDate = match.start_date || match.startDate
   const homeTeam = match.homeTeam || match.home_team || match.home
   const awayTeam = match.awayTeam || match.away_team || match.away
+  const homeMeta = match.home || match.homeTeam
+  const awayMeta = match.away || match.awayTeam
 
   return {
     ...match,
@@ -25,8 +27,8 @@ const normalizeMatch = (match = {}) => {
     startDate: rawStartDate || rawStartTime || match.start_date || match.startDate,
     homeTeam,
     awayTeam,
-    homeLogo: match.homeLogo || match.home_logo || match.home_badge,
-    awayLogo: match.awayLogo || match.away_logo || match.away_badge,
+    homeLogo: match.homeLogo || match.home_logo || match.home_badge || match.homeBadge || match.home_team_logo || homeMeta?.logo || homeMeta?.badge,
+    awayLogo: match.awayLogo || match.away_logo || match.away_badge || match.awayBadge || match.away_team_logo || awayMeta?.logo || awayMeta?.badge,
     homeScore: match.homeScore ?? match.home_score ?? match.home_team_score,
     awayScore: match.awayScore ?? match.away_score ?? match.away_team_score,
     venue: match.venue || match.stadium,

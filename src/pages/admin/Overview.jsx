@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Trophy, Users, BarChart3, Shield } from 'lucide-react'
 import StatCard from '../../components/common/StatCard'
-import { adminService } from '../../services/admin.service'
+import adminService from '../../services/admin.service'
 import { toast } from 'react-hot-toast'
 
 const Overview = () => {

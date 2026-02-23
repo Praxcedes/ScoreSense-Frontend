@@ -16,7 +16,7 @@ const normalizePrediction = (prediction) => {
     odds: prediction.odds || prediction.odds_value || prediction.odds_decimal,
     stake: prediction.stake || prediction.amount || prediction.points_staked,
     potential: prediction.potential || prediction.potential_return || prediction.payout,
-    confidence: prediction.confidence || prediction.confidence_score,
+    confidence: (prediction.confidence ?? prediction.confidence_score ?? 0),
     result: prediction.result || prediction.outcome,
     timeLeft: prediction.time_left || prediction.timeLeft,
     raw: prediction,

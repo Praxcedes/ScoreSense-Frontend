@@ -24,12 +24,38 @@ COMMUNITY_API.interceptors.response.use(
 )
 
 export const communityService = {
+  normalizePost(post = {}) {
+    const author = post.author || post.user || {}
+    const authorDisplayName = post.user_display_name || author.user_display_name || author.name || author.username
+    const authorLocation = post.user_location || author.user_location || author.location
+    const authorAvatar = post.user_avatar || author.user_avatar || author.avatar_url || author.avatar
+
+    return {
+      ...post,
+      user_display_name: authorDisplayName,
+      user_location: authorLocation,
+      user_avatar: authorAvatar,
+      author: {
+        ...author,
+        name: authorDisplayName,
+        username: author.username || authorDisplayName,
+        location: authorLocation,
+        avatar_url: author.avatar_url || authorAvatar,
+        avatar: author.avatar || authorAvatar
+      }
+    }
+  },
+
   async getPosts({ page = 1, perPage = 20, userId = null } = {}) {
     const params = { page, per_page: perPage }
     if (userId) {
       params.user_id = userId
     }
-    return COMMUNITY_API.get('/api/community/posts', { params })
+    const response = await COMMUNITY_API.get('/api/community/posts', { params })
+    if (response?.posts) {
+      return { ...response, posts: response.posts.map(this.normalizePost) }
+    }
+    return response
   },
 
   async createPost({ content, mediaUrl = null, postType = 'text' }) {
@@ -38,7 +64,11 @@ export const communityService = {
       media_url: mediaUrl,
       post_type: postType
     }
-    return COMMUNITY_API.post('/api/community/posts', payload)
+    const response = await COMMUNITY_API.post('/api/community/posts', payload)
+    if (response?.post) {
+      return { ...response, post: this.normalizePost(response.post) }
+    }
+    return response
   },
 
   async getTrendingTopics() {
@@ -47,5 +77,20 @@ export const communityService = {
 
   async getUserStats() {
     return COMMUNITY_API.get('/api/community/user/stats')
+  },
+
+  async getComments(postId) {
+    return COMMUNITY_API.get(`/api/community/posts/${postId}/comments`)
+  },
+
+  async addComment({ postId, content }) {
+    return COMMUNITY_API.post('/api/community/comments', {
+      post_id: postId,
+      content
+    })
+  },
+
+  async toggleLike(postId) {
+    return COMMUNITY_API.post(`/api/community/posts/${postId}/like`)
   }
 }
